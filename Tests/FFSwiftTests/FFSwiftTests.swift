@@ -6,6 +6,10 @@ final class FFSwiftTests: XCTestCase {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
+
+		try encode(png: "", size: (2, 2), pixels: [.init(10, 11, 12), .init(20, 21, 22), .init(31, 32, 33), .init(44, 45, 46)])
+		try decode()
+
         XCTAssertEqual(FFSwift().text, "Hello, World!")
     }
 }
