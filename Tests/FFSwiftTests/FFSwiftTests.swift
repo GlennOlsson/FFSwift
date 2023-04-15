@@ -11,17 +11,23 @@ final class FFSwiftTests: XCTestCase {
         //		try decode()
 
         let client = FlickrClient(
-            
+           
         )
 
         // get data from file
-        let data = try Data(contentsOf: URL(fileURLWithPath: "/tmp/hej.png"))
+        let data = try Data(contentsOf: URL(fileURLWithPath: "/Users/glenn/Desktop/Glennbilder/studs-ansikte.png"))
 
         print("UPLOADING")
-        await client.uploadFile(
+        let id = await client.uploadFile(
             data: data
         )
-        print("DONE UPLOADING")
+        print("DONE UPLOADING \(id!)")
+        Thread.sleep(forTimeInterval: 10)
+        await client.getFile(id: id!)
+        print("Got file info")
+
+        // await client.deleteFile(id: id!)
+        // print("DONE DELETING \(id!)")
         // client.testAuth()
         // .response { response in
         //     switch response.result {

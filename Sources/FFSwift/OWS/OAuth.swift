@@ -29,6 +29,22 @@ open class OAuth {
 		let nonce: String
 		let timestamp: String
 		let signature: String
+		let parameters: [String: String]
+
+		public init(nonce: String, timestamp: String, signature: String, parameters: [String: String]) {
+			self.nonce = nonce
+			self.timestamp = timestamp
+			self.signature = signature
+			self.parameters = parameters
+		}
+
+		public var allParameters : [String: String] {
+			var allParameters: [String: String] = parameters
+			allParameters["oauth_signature"] = signature
+			allParameters["oauth_nonce"] = nonce
+			allParameters["oauth_timestamp"] = timestamp
+			return allParameters
+		}
 	}
 
 	func getNonce() -> String {
@@ -39,7 +55,7 @@ open class OAuth {
 		return "\(Int(Date().timeIntervalSince1970))"
 	}
 
-	func generateParamters(url: URL, httpMethod: String, params: [String: String] = [:]) -> GeneratedParameters {
+	func generateParameters(url: URL, httpMethod: String, params: [String: String] = [:]) -> GeneratedParameters {
 		let parameterString: String = url.query ?? ""
 		let encodedParameterString: String = parameterString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let encodedUrl: String = url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!.replacingOccurrences(of: url.query ?? "", with: encodedParameterString)
@@ -52,7 +68,7 @@ open class OAuth {
 
 		let encodedMethod: String = httpMethod.uppercased()
 
-		var allParamters: [String: String] = [
+		var allParameters: [String: String] = [
 			"oauth_consumer_key": consumerKey,
 			"oauth_nonce": nonce,
 			"oauth_signature_method": signatureMethod,
@@ -61,10 +77,10 @@ open class OAuth {
 			"oauth_version": oauthVersion,
 		]
 		params.forEach { key, val in
-			allParamters[key] = val
+			allParameters[key] = val
 		}
 
-		let sortedParams: [Dictionary<String, String>.Element] = allParamters.sorted(by: { $0.0 < $1.0 })
+		let sortedParams: [Dictionary<String, String>.Element] = allParameters.sorted(by: { $0.0 < $1.0 })
 
 		var baseString = ""
 		for (key, value) in sortedParams {
@@ -87,6 +103,11 @@ open class OAuth {
 
 		let encodedSignature = Data(signature).base64EncodedString().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 
-		return .init(nonce: encodedNonce, timestamp: encodedTimestamp, signature: encodedSignature)
+		return .init(
+			nonce: encodedNonce, 
+			timestamp: encodedTimestamp, 
+			signature: encodedSignature, 
+			parameters: allParameters
+		)
 	}
 }

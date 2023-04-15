@@ -10,7 +10,7 @@ import Foundation
 
 private let uploadURL = URL(string: "https://api.flickr.com/services/upload")!
 private let apiURL = URL(string: "https://api.flickr.com/services/rest")!
-	// private let uploadURL = URL(string: "http://127.0.0.1:8080")!
+// private let uploadURL = URL(string: "http://127.0.0.1:8080")!
 
 public class FlickrClient: OWS {
 	let consumerKey: String
@@ -58,12 +58,32 @@ public class FlickrClient: OWS {
 		if let responseData = response, let photoID = parsePhotoId(from: responseData) {
 			return photoID
 		} else {
+			print("COULD NOT PARSE PHOTO ID FROM \(String(data: response!, encoding: .utf8)!)")
 			return nil
 		}
 	}
 
-	public func deleteFile(id _: String) async {
-		// TODO:
+	public func deleteFile(id: String) async {
+		// Remove photo from Flickr
+		let method = "flickr.photos.delete"
+		let oauthGenerator = getOauthGenerator()
+		let parameters = oauthGenerator.generateParameters(
+			url: apiURL, httpMethod: "GET", params: ["method": method, "photo_id": id]
+		)
+
+		await withCheckedContinuation { completion in
+			AF.request(apiURL, method: .get, parameters: parameters.allParameters).response { response in
+				// print resp data as string
+				switch response.result {
+				case let .success(data):
+					print("Successfully uploaded! \(String(data: data!, encoding: .utf8)!)")
+				case let .failure(error):
+					print("ERROR WITH UPLOAD: \(error)")
+				}
+
+				completion.resume()
+			}
+		}
 	}
 
 	public func getRecentFiles(n _: Int) async -> [String]? {
@@ -71,8 +91,29 @@ public class FlickrClient: OWS {
 		return []
 	}
 
-	public func getFile(id _: String) async -> Data? {
-		// TODO:
+	public func getFile(id: String) async -> Data? {
+		let data = await withCheckedContinuation { completion in
+			self.getImage(id: id).response { response in
+				switch response.result {
+				case let .success(data):
+					print("Successfully uploaded!")
+					// Decode JSON
+					let decoder = JSONDecoder()
+					let response = try? decoder.decode(FlickrGetSizesResponse.self, from: data!)
+					if response == nil {
+						// print data as string
+						print("Get sizes response: \(String(data: data!, encoding: .utf8)!)")
+					} else {
+						print("Get sizes response: \(response!.description)")
+					}
+					print("Get sizes response: \(response)")
+					completion.resume(returning: data)
+				case let .failure(error):
+					print("ERROR WITH UPLOAD: \(error)")
+					completion.resume(returning: nil)
+				}
+			}
+		}
 		return Data()
 	}
 
@@ -102,23 +143,11 @@ public class FlickrClient: OWS {
 
 		print("URL: \(url.absoluteString)")
 
-		let paramters = oauthGenerator.generateParamters(
+		let parameters = oauthGenerator.generateParameters(
 			url: url, httpMethod: "POST", params: extraParams
 		)
 
-		var formParams: [String: String] = [
-			"oauth_nonce": paramters.nonce,
-			"oauth_timestamp": paramters.timestamp,
-			"oauth_consumer_key": oauthGenerator.consumerKey,
-			"oauth_signature_method": oauthGenerator.signatureMethod,
-			"oauth_version": oauthGenerator.oauthVersion,
-			"oauth_token": oauthGenerator.accessToken,
-			"oauth_signature": paramters.signature,
-		]
-
-		extraParams.forEach { key, val in
-			formParams[key] = val
-		}
+		var formParams = parameters.allParameters
 
 		// Unique filename
 		let filename = UUID().uuidString + ".png"
@@ -134,44 +163,31 @@ public class FlickrClient: OWS {
 		)
 	}
 
-	public func getImage(id: String) {
+	private func getImage(id: String) -> Alamofire.DataRequest {
 		let method = "flickr.photos.getSizes"
 		let oauthGenerator = getOauthGenerator()
-		let parameters = oauthGenerator.generateParamters(
-			url: apiURL, httpMethod: "GET", params: ["method": method, "photo_id": id]
+		print("ID: \(id)")
+		let parameters = oauthGenerator.generateParameters(
+			url: apiURL, 
+			httpMethod: "GET", 
+			params: [
+				"method": method, 
+				"photo_id": id, 
+				"format": "json", 
+				"nojsoncallback": "1"
+			]
 		)
 
-		AF.request(apiURL, method: .get, parameters: [
-			"method": method,
-			"photo_id": id,
-			"oauth_nonce": parameters.nonce,
-			"oauth_timestamp": parameters.timestamp,
-			"oauth_consumer_key": oauthGenerator.consumerKey,
-			"oauth_signature_method": oauthGenerator.signatureMethod,
-			"oauth_version": oauthGenerator.oauthVersion,
-			"oauth_token": oauthGenerator.accessToken,
-			"oauth_signature": parameters.signature,
-		]).response { response in
-			print(response)
-		}
+		return AF.request(apiURL, method: .get, parameters: parameters.allParameters)
 	}
 
 	public func testAuth() -> DataRequest {
 		let method = "flickr.test.login"
 		let oauthGenerator = getOauthGenerator()
-		let parameters = oauthGenerator.generateParamters(
+		let parameters = oauthGenerator.generateParameters(
 			url: apiURL, httpMethod: "GET", params: ["method": method]
 		)
 
-		return AF.request(apiURL, method: .get, parameters: [
-			"method": method,
-			"oauth_nonce": parameters.nonce,
-			"oauth_timestamp": parameters.timestamp,
-			"oauth_consumer_key": oauthGenerator.consumerKey,
-			"oauth_signature_method": oauthGenerator.signatureMethod,
-			"oauth_version": oauthGenerator.oauthVersion,
-			"oauth_token": oauthGenerator.accessToken,
-			"oauth_signature": parameters.signature,
-		])
+		return AF.request(apiURL, method: .get, parameters: parameters.allParameters)
 	}
 }

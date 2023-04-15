@@ -31,8 +31,8 @@ class OAuthMock: OAuth {
 		return timestampFunc()
 	}
 
-	public func paramters(url: URL, httpMethod: String, params: [String: String] = [:]) -> GeneratedParameters {
-		return generateParamters(url: url, httpMethod: httpMethod, params: params)
+	public func parameters(url: URL, httpMethod: String, params: [String: String] = [:]) -> GeneratedParameters {
+		return generateParameters(url: url, httpMethod: httpMethod, params: params)
 	}
 }
 
@@ -65,7 +65,7 @@ final class OAuthTest: XCTestCase {
 			timestampFunc: { "1681578509" }
 		)
 
-		let generatedParams = oath.generateParamters(url: url, httpMethod: "POST")
+		let generatedParams = oath.generateParameters(url: url, httpMethod: "POST")
 
 		XCTAssertEqual(expectedSignature, generatedParams.signature)
 	}
@@ -79,7 +79,7 @@ final class OAuthTest: XCTestCase {
 			timestampFunc: { "1681578815" }
 		)
 
-		let generatedParams = oath.generateParamters(
+		let generatedParams = oath.generateParameters(
 			url: url,
 			httpMethod: "POST",
 			params: [
