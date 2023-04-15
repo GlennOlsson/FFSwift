@@ -53,7 +53,9 @@ class OAuthParamters {
 		let encodedSignatureMethod = self.signatureMethod.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let encodedVersion = self.oauthVersion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 
-		var baseString = "oauth_consumer_key=\(encodedConsumerKey)&oauth_nonce=\(encodedNonce)&oauth_signature_method=\(encodedSignatureMethod)&oauth_timestamp=\(encodedTimestamp)&oauth_token=\(encodedAccessToken)&oauth_version=\(encodedVersion)&title=hejhopp"
+		let param = "hej hopp".addingPercentEncoding(withAllowedCharacters: .afURLQueryAllowed)!
+
+		var baseString = "oauth_consumer_key=\(encodedConsumerKey)&oauth_nonce=\(encodedNonce)&oauth_signature_method=\(encodedSignatureMethod)&oauth_timestamp=\(encodedTimestamp)&oauth_token=\(encodedAccessToken)&oauth_version=\(encodedVersion)&title=\(param)"
 		baseString = baseString.addingPercentEncoding(withAllowedCharacters: .afURLQueryAllowed)!
 		baseString = "\(httpMethod)&\(encodedUrl)&\(baseString)"
 
@@ -70,8 +72,6 @@ class OAuthParamters {
 		print("BASE STR \(encodedBaseString)")
 
 
-		//POST&http%3A%2F%2F127.0.0.1%3A8080&oauth_consumer_key%3D04b22819363cb16310bd583b6d176852%26oauth_nonce%3Dnonce%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1681543834%26oauth_token%3D72157720851762173-94f64f0374b4c646%26oauth_version%3D1.0%26title%3Dhejhopp
-		//POST&http%3A%2F%2F127.0.0.1%3A8080&oauth_consumer_key%3D04b22819363cb16310bd583b6d176852%26oauth_nonce%3Dnonce%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1681543834%26oauth_token%3D72157720851762173-94f64f0374b4c646%26oauth_version%3D1.0%26title%3Dhej%2520hopp
 
 		let expectedBase = ""
 
@@ -96,10 +96,10 @@ public func upload() throws {
 	print("Uploading")
 
 	let oauthGenerator = OAuthParamters(
-		consumerKey:
-		consumerSecret:
-		accessToken:
-		accessSecret:
+		consumerKey: 
+		consumerSecret: 
+		accessToken: 
+		accessSecret: 
 	)
 
 	let url = URL(string: "https://api.flickr.com/services/upload")!
@@ -130,7 +130,7 @@ public func upload() throws {
 	let uploader = AF.upload(multipartFormData: { formData in
 		formData.append(URL(fileURLWithPath: "/tmp/hej.png"), withName: "photo")
 
-		formData.append("skitungen".data(using: .utf8)!, withName: "title")
+		formData.append("hej hopp".data(using: .utf8)!, withName: "title")
 
 		for (key, str) in formParams {
 			formData.append(str.data(using: .utf8)!, withName: key)
