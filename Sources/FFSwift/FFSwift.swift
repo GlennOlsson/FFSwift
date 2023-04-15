@@ -7,30 +7,28 @@ class FFSSteam: PNG.Bytestream.Destination {
 	}
 }
 
-public func encode(png path:String, size:(x:Int, y:Int), pixels:[PNG.RGBA<UInt8>]) throws {
+public func encode(png _: String, size: (x: Int, y: Int), pixels: [PNG.RGBA<UInt8>]) throws {
 	let image: PNG.Data.Rectangular = .init(packing: pixels, size: size,
-										   layout: .init(format: .rgba8(palette: [], fill: nil)))
+	                                        layout: .init(format: .rgba8(palette: [], fill: nil)))
 
 	var stream = FFSSteam()
 	try image.compress(path: "/tmp/hej.png", level: 0)
 }
 
 public func decode() throws {
-	guard let image:PNG.Data.Rectangular = try .decompress(path: "/tmp/hej.png") else {
+	guard let image: PNG.Data.Rectangular = try .decompress(path: "/tmp/hej.png") else {
 		fatalError("failed to open .png'")
 	}
 
-	let rgba:[PNG.RGBA<UInt8>] = image.unpack(as: PNG.RGBA<UInt8>.self)
+	let rgba: [PNG.RGBA<UInt8>] = image.unpack(as: PNG.RGBA<UInt8>.self)
 
 	for pixel in rgba {
 		print(pixel)
 	}
-
 }
 
 public struct FFSwift {
-    public private(set) var text = "Hello, World!"
+	public private(set) var text = "Hello, World!"
 
-    public init() {
-    }
+	public init() {}
 }

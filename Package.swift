@@ -7,19 +7,20 @@ let package = Package(
 	name: "FFSwift",
 	platforms: [
 		.macOS(.v10_15),
-		.iOS(.v11)
+		.iOS(.v11),
 	],
 	products: [
 		// Products define the executables and libraries a package produces, and make them visible to other packages.
 		.library(
 			name: "FFSwift",
-			targets: ["FFSwift"]),
+			targets: ["FFSwift"]
+		),
 	],
 	dependencies: [
 		// Dependencies declare other packages that this package depends on.
 		// .package(url: /* package url */, from: "1.0.0"),
 		.package(url: "https://github.com/tayloraswift/swift-png", exact: "4.0.2"),
-		.package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.6.1"))
+		.package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.6.1")),
 
 	],
 	targets: [
@@ -29,10 +30,12 @@ let package = Package(
 			name: "FFSwift",
 			dependencies: [
 				.product(name: "PNG", package: "swift-png"),
-				.product(name: "Alamofire", package: "Alamofire")
-			]),
+				.product(name: "Alamofire", package: "Alamofire"),
+			]
+		),
 		.testTarget(
 			name: "FFSwiftTests",
-			dependencies: ["FFSwift"]),
+			dependencies: ["FFSwift"]
+		),
 	]
 )
