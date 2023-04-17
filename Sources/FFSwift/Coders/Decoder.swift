@@ -8,10 +8,10 @@
 import Foundation
 import PNG
 
-public class FFSEncoder {
+public class FFSDecoder {
 
-	public static func encode(_ data: Data, password: String) -> Data {
-		// Encrypt data using password, and encode as png
+	public static func decode(_ data: Data, password: String) throws -> Data {
+		// Decode png data and decrypt with password
 		// TODO:
 
 		return Data()
