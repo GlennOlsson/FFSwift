@@ -35,13 +35,10 @@ public class FlickrClient: OWS {
 	}
 
 	public func uploadFile(data: Data) async -> String? {
-		print("Uploading file...")
-
 		let response = await withCheckedContinuation { completion in
 			self.upload(data: data).response { response in
 				switch response.result {
 				case let .success(data):
-					print("Successfully uploaded!")
 					completion.resume(returning: data)
 				case let .failure(error):
 					print("ERROR WITH UPLOAD: \(error)")
@@ -76,7 +73,7 @@ public class FlickrClient: OWS {
 				// print resp data as string
 				switch response.result {
 				case let .success(data):
-					print("Successfully uploaded! \(String(data: data!, encoding: .utf8)!)")
+					print("Successfully deleted file")
 				case let .failure(error):
 					print("ERROR WITH UPLOAD: \(error)")
 				}
@@ -86,35 +83,33 @@ public class FlickrClient: OWS {
 		}
 	}
 
-	public func getRecentFiles(n _: Int) async -> [String]? {
-		// TODO:
-		return []
+	public func getRecentFiles(n: Int) async -> [String]? {
+		// Get recent photos from Flickr
+		return await getMostRecentImageIDs(n: n)
 	}
 
 	public func getFile(id: String) async -> Data? {
-		let data = await withCheckedContinuation { completion in
-			self.getImage(id: id).response { response in
-				switch response.result {
-				case let .success(data):
-					print("Successfully uploaded!")
-					// Decode JSON
-					let decoder = JSONDecoder()
-					let response = try? decoder.decode(FlickrGetSizesResponse.self, from: data!)
-					if response == nil {
-						// print data as string
-						print("Get sizes response: \(String(data: data!, encoding: .utf8)!)")
-					} else {
-						print("Get sizes response: \(response!.description)")
+		let url = await getImageURL(id: id)
+
+		print("Got original image url: \(url ?? "nil")")
+
+		// Get data from url
+		if let url = url {
+			let data = await withCheckedContinuation { completion in
+				AF.request(url).response { response in
+					switch response.result {
+					case let .success(data):
+						completion.resume(returning: data)
+					case let .failure(error):
+						print("Error with getting file data from url: \(error)")
+						completion.resume(returning: nil)
 					}
-					print("Get sizes response: \(response)")
-					completion.resume(returning: data)
-				case let .failure(error):
-					print("ERROR WITH UPLOAD: \(error)")
-					completion.resume(returning: nil)
 				}
 			}
+			return data
+		} else {
+			return nil
 		}
-		return Data()
 	}
 
 	private func upload(
@@ -147,7 +142,7 @@ public class FlickrClient: OWS {
 			url: url, httpMethod: "POST", params: extraParams
 		)
 
-		var formParams = parameters.allParameters
+		let formParams = parameters.allParameters
 
 		// Unique filename
 		let filename = UUID().uuidString + ".png"
@@ -163,22 +158,99 @@ public class FlickrClient: OWS {
 		)
 	}
 
-	private func getImage(id: String) -> Alamofire.DataRequest {
+	private func getImageURL(id: String) async -> String? {
 		let method = "flickr.photos.getSizes"
 		let oauthGenerator = getOauthGenerator()
-		print("ID: \(id)")
 		let parameters = oauthGenerator.generateParameters(
-			url: apiURL, 
-			httpMethod: "GET", 
+			url: apiURL,
+			httpMethod: "GET",
 			params: [
-				"method": method, 
-				"photo_id": id, 
-				"format": "json", 
-				"nojsoncallback": "1"
+				"method": method,
+				"photo_id": id,
+				"format": "json",
+				"nojsoncallback": "1",
 			]
 		)
 
-		return AF.request(apiURL, method: .get, parameters: parameters.allParameters)
+		let responseURL: String? = await withCheckedContinuation { continuation in
+
+			AF.request(
+				apiURL,
+				method: .get,
+				parameters: parameters.allParameters
+			).response { response in
+				// Get the original size url from the response
+				switch response.result {
+				case let .success(data):
+					// Decode JSON
+					let decoder = JSONDecoder()
+					var url: String? = nil
+					if let response = try? decoder.decode(FlickrGetSizesResponse.self, from: data!) {
+						print("Got sizes from flickr, getting original")
+						response.sizes.size.forEach { size in
+							if size.label == "Original" {
+								url = size.source
+							}
+						}
+
+					} else {
+						print("Could not parse getSizes response")
+					}
+					continuation.resume(returning: url)
+				case let .failure(error):
+					print("Error with getSizes response: \(error)")
+					continuation.resume(returning: nil)
+				}
+			}
+		}
+
+		return responseURL
+	}
+
+	private func getMostRecentImageIDs(n: Int) async -> [String] {
+		let method = "flickr.photos.getRecent"
+		let oauthGenerator = getOauthGenerator()
+		let parameters = oauthGenerator.generateParameters(
+			url: apiURL,
+			httpMethod: "GET",
+			params: [
+				"method": method,
+				"format": "json",
+				"nojsoncallback": "1",
+				"extras": "url_o",
+				"per_page": String(n),
+				"user_id": "me",
+			]
+		)
+
+		let responseIDs: [String] = await withCheckedContinuation { continuation in
+
+			AF.request(
+				apiURL,
+				method: .get,
+				parameters: parameters.allParameters
+			).response { response in
+				// Get the original size url from the response
+				switch response.result {
+				case let .success(data):
+					// Decode JSON
+					let decoder = JSONDecoder()
+					var ids: [String] = []
+					if let response = try? decoder.decode(FlickrGetRecentResponse.self, from: data!) {
+						print("Got recent photos from flickr, adding original urls")
+						ids = response.photos.photo.map { $0.id }
+					} else {
+						print("Could not parse getRecent response: \(String(data: data!, encoding: .utf8)!)")
+					}
+					continuation.resume(returning: ids)
+				case let .failure(error):
+					print("Error with getRecent response: \(error)")
+					continuation.resume(returning: [])
+				}
+			}
+		}
+
+		return responseIDs
 	}
 
 	public func testAuth() -> DataRequest {

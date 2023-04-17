@@ -11,8 +11,6 @@ func parsePhotoId(from data: Data) -> String? {
 	return photoId
 }
 
-
-
 public class FlickrUploadResponse: Decodable {
 	public let stat: String
 	public let code: Int
@@ -43,6 +41,7 @@ public class FlickrPhoto: Decodable {
 	public let ispublic: Int
 	public let isfriend: Int
 	public let isfamily: Int
+	public let url_o: String?
 
 	// create string representation of object
 	public var description: String {
@@ -84,5 +83,16 @@ public class FlickrSize: Decodable {
 	// create string representation
 	public var description: String {
 		return "label: \(label), width: \(width), height: \(height), source: \(source), url: \(url), media: \(media)"
+	}
+}
+
+// Response models for flickr getRecent
+public class FlickrGetRecentResponse: Decodable {
+	public let stat: String
+	public let photos: FlickrPhotos
+
+	// create string representation
+	public var description: String {
+		return "stat: \(stat), photos: \(photos)"
 	}
 }
