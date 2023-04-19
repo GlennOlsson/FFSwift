@@ -8,20 +8,16 @@
 import Foundation
 import PNG
 
-
 // Convert list of 16 bit pixels to bytes
 func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> [UInt8] {
-	var bytes: [UInt8] = []
 
-	var i = 0
+	var bytes: [UInt8] = []
 
 	for pixel in pixels {
 		for component in [pixel.r, pixel.g, pixel.b, pixel.a] {
-			// If is first byte, store it and continue
 			let firstByte = UInt8(component >> 8)
 			let secondByte = UInt8(component & 0xFF)
-			// print("Got \(firstByte) and \(secondByte)")
-			print("First pixel", pixel, firstByte, secondByte)
+
 			bytes.append(firstByte)
 			bytes.append(secondByte)
 		}
@@ -56,22 +52,16 @@ public class FFSDecoder {
 		let png = try! PNG.Data.Rectangular.decompress(stream: &stream)
 
 		let pixels = png.unpack(as: PNG.RGBA<UInt16>.self)
-		print("Output pixels", pixels)
+
 		var bytes = pixelsToBytes(pixels)
 
-		print("Number of bytes to decode: \(bytes[0])")
+		guard let header = FFSHeader(raw: &bytes) else {
+			fatalError("Not FFS data")
+		}
 
-		// print("Got \(bytes.count) bytes")
-
-		let relevantByteCount = Int(bytes[0])
-
-		bytes.removeFirst()
+		let relevantByteCount = Int(header.dataCount)
 
 		let relevantBytes = bytes[0..<relevantByteCount]
-
-		print("Returning \(relevantBytes.count) bytes")
-
-		print(relevantBytes)
 
 		return Data(relevantBytes)
 	}

@@ -53,7 +53,11 @@ public class CoderTests: XCTestCase {
 
 	// Assert coders work for images
 	func testEncodeImage() {
-		let data = try! Data(contentsOf: URL(fileURLWithPath: "Tests/resources/test.png"))
+		let url = URL(fileURLWithPath: "Tests/resources/test.png")
+		guard let data = try? Data(contentsOf: url) else {
+			XCTFail("Could not load image")
+			return
+		}
 
 		let password = "password"
 
