@@ -21,10 +21,7 @@ func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> [UInt8] {
 			let firstByte = UInt8(component >> 8)
 			let secondByte = UInt8(component & 0xFF)
 			// print("Got \(firstByte) and \(secondByte)")
-			if i == 0 {
-				print("First pixel", pixel, firstByte, secondByte)
-			}
-			i = i + 1
+			print("First pixel", pixel, firstByte, secondByte)
 			bytes.append(firstByte)
 			bytes.append(secondByte)
 		}

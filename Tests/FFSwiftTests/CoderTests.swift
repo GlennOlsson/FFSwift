@@ -15,11 +15,12 @@ public class CoderTests: XCTestCase {
 		// Test that encoding and decoding works with some examples
 		let examples = [
 			"Hello, World!",
-			// "123",
-			// "abc",
-			// "ABC",
-			// "!@#",
-			// "Hallå alla vackra människor!"
+			"123",
+			"1234",
+			"abc",
+			"ABC",
+			"!@#",
+			"Hallå alla vackra människor!"
 		]
 		examples.forEach { example in
 			encodeAndAssert(input: example, password: "password")
