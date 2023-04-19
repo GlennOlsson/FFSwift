@@ -1,7 +1,7 @@
 
 import PNG
 
-class FFSSteam: PNG.Bytestream.Destination {
+class FFSSteama: PNG.Bytestream.Destination {
 	func write(_ buffer: [UInt8]) -> Void? {
 		print("Write another \(buffer.count)")
 	}
@@ -11,7 +11,7 @@ public func encode(png _: String, size: (x: Int, y: Int), pixels: [PNG.RGBA<UInt
 	let image: PNG.Data.Rectangular = .init(packing: pixels, size: size,
 	                                        layout: .init(format: .rgba8(palette: [], fill: nil)))
 
-	var stream = FFSSteam()
+	var stream = FFSSteama()
 	try image.compress(path: "/tmp/hej.png", level: 0)
 }
 
