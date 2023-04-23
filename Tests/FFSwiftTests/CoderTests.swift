@@ -2,7 +2,6 @@ import FFSwift
 import XCTest
 
 public class CoderTests: XCTestCase {
-
 	func encodeAndAssert(input: String, password: String) {
 		let encodedData = FFSEncoder.encode(input.data(using: .utf8)!, password: password)
 
@@ -20,7 +19,7 @@ public class CoderTests: XCTestCase {
 			"abc",
 			"ABC",
 			"!@#",
-			"Hallå alla vackra människor!"
+			"Hallå alla vackra människor!",
 		]
 		examples.forEach { example in
 			encodeAndAssert(input: example, password: "password")
@@ -35,7 +34,7 @@ public class CoderTests: XCTestCase {
 			"abc",
 			"ABC",
 			"!@#",
-			"Hallå alla vackra människor!"
+			"Hallå alla vackra människor!",
 		]
 		examples.forEach { example in
 			encodeAndAssert(input: example, password: "password")
@@ -48,7 +47,10 @@ public class CoderTests: XCTestCase {
 	func testDecodeWrongPassword() {
 		let encodedData = FFSEncoder.encode("Hello, World!".data(using: .utf8)!, password: "password")
 
-		XCTAssertThrowsError(try FFSDecoder.decode(encodedData, password: "wrongPassword"))
+		// Assert FFSDecoder.decode throws FFSDecodeException
+		XCTAssertThrowsError(try FFSDecoder.decode(encodedData, password: "wrongPassword")) { error in
+			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.decryptionError)
+		}
 	}
 
 	// Assert coders work for images
@@ -66,5 +68,17 @@ public class CoderTests: XCTestCase {
 		let decodedData = try! FFSDecoder.decode(encodedData, password: password)
 
 		XCTAssertEqual(data, decodedData)
+	}
+
+	func testBadFFSDataThrow() {
+		let url = URL(fileURLWithPath: "Tests/resources/test.png")
+		guard let data = try? Data(contentsOf: url) else {
+			XCTFail("Could not load image")
+			return
+		}
+
+		XCTAssertThrowsError(try FFSDecoder.decode(data, password: "wrongPassword")) { error in
+			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.notFFSData)
+		}
 	}
 }

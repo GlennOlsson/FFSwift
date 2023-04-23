@@ -1,5 +1,5 @@
 //
-//  Encoder.swift
+//  Decoder.swift
 //  FFS-Mobile
 //
 //  Created by Glenn Olsson on 2023-04-12.
@@ -56,7 +56,7 @@ public class FFSDecoder {
 		var bytes = pixelsToBytes(pixels)
 
 		guard let header = FFSHeader(raw: &bytes) else {
-			fatalError("Not FFS data")
+			throw FFSDecodeError.notFFSData
 		}
 
 		let relevantByteCount = Int(header.dataCount)

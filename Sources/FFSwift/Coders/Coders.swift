@@ -1,5 +1,5 @@
 struct FFSHeader {
-	let magic = "FFS"
+	static let magic = "FFS"
 
 	let majorVersion: UInt8
 	let minorVersion: UInt8
@@ -17,23 +17,22 @@ struct FFSHeader {
 	}
 
 	// Number of bytes required for the header
-	func count() -> Int {
+	static func count() -> Int {
 		// Magic + major + minor + dataCount
-		return self.magic.count + 1 + 1 + 4
+		return FFSHeader.magic.count + 1 + 1 + 4
 	}
 
 	// Get byte representation of header
 	func raw() -> [UInt8] {
 		var bytes: [UInt8] = []
 
-		for byte in magic.utf8 {
+		for byte in FFSHeader.magic.utf8 {
 			bytes.append(byte)
 		}
 
 		bytes.append(majorVersion)
 		bytes.append(minorVersion)
 
-		print(dataCount)
 		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 24))
 		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 16))
 		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 8))
@@ -45,6 +44,12 @@ struct FFSHeader {
 
 	// Create header from byte representation
 	init?(raw: inout [UInt8]) {
+		// Make sure that there is enough data to decode the header
+		guard raw.count >= FFSHeader.count() else {
+			return nil
+		}
+
+		// Assert that the magic is correct
 		guard let magic = String(bytes: raw[0..<3], encoding: .utf8) else {
 			return nil
 		}
@@ -61,6 +66,11 @@ struct FFSHeader {
 			| UInt32(raw[7]) << 8
 			| UInt32(raw[8])
 		
-		raw.removeFirst(self.count())
+		raw.removeFirst(FFSHeader.count())
+
+		// Make sure that remaining data is at least as long as the dataCount
+		guard raw.count >= self.dataCount else {
+			return nil
+		}
 	}
 }
