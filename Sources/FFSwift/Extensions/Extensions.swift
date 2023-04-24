@@ -1,5 +1,7 @@
 import Foundation
 
+import os
+
 public protocol DataInteger where Self: FixedWidthInteger {
 	// Property to get the integer as data
 	var data: Data { get }
@@ -17,7 +19,9 @@ extension DataInteger {
 
 	// Convert data to integer
 	public init(data: Data) {
-		self = data.withUnsafeBytes { $0.load(as: Self.self) }.bigEndian
+		// Copy
+		let partData = Data(data)
+		self = partData.withUnsafeBytes { $0.load(as: Self.self) }.bigEndian
 	}
 }
 
@@ -28,3 +32,31 @@ extension UInt32: DataInteger {}
 extension UInt16: DataInteger {}
 
 extension UInt8: DataInteger {}
+
+extension Data {
+	public func hexEncodedString() -> String {
+		return map { String(format: "%02hhx", $0) }.joined()
+	}
+
+	public init?(hexString: String) {
+      let len = hexString.count / 2
+      var data = Data(capacity: len)
+      var i = hexString.startIndex
+      for _ in 0..<len {
+        let j = hexString.index(i, offsetBy: 2)
+        let bytes = hexString[i..<j]
+        if var num = UInt8(bytes, radix: 16) {
+          data.append(&num, count: 1)
+        } else {
+          return nil
+        }
+        i = j
+      }
+      self = data
+    }
+    /// Hexadecimal string representation of `Data` object.
+    public var hexadecimal: String {
+        return map { String(format: "%02x", $0) }
+            .joined()
+    }
+}

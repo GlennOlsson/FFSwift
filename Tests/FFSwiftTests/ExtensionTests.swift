@@ -1,6 +1,7 @@
 import FFSwift
 import Foundation
 import XCTest
+import os
 
 public class ExtensionTests: XCTestCase {
 	func testUInt64FromData() {
@@ -34,5 +35,26 @@ public class ExtensionTests: XCTestCase {
 
 			XCTAssertEqual(newValue, uint64)
 		}
+	}
+
+	func testUInt32FromDataWithPartOfArray() {
+		let data = Data([0x00, 0x0, 0x00, 0x00, 0x01, 0x00])
+		let partData = data[1...4]
+		let okData = Data(partData)
+		let value: UInt32 = UInt32(data: okData)
+		XCTAssertEqual(value, 1)
+	}
+
+	func testUInt32FromBiggerData() {
+		// 5 byte data array
+		let data = Data([0x00, 0x00, 0x00, 0x01, 0x00])
+		let value: UInt32 = UInt32(data: data)
+		XCTAssertEqual(value, 1)
+	}
+
+	func testHexEncodedString() {
+		let data = Data([0x00, 0x01, 0x02, 0x03])
+		let string = data.hexEncodedString()
+		XCTAssertEqual(string, "00010203")
 	}
 }

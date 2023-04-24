@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 // Function that derives a HKDF key from a password string
-func deriveKey(password: String, salt: Data, length: Int) -> SymmetricKey {
+public func deriveKey(password: String, salt: Data, length: Int) -> SymmetricKey {
 	let passwordData = Data(password.utf8)
 
 	let key = HKDF<SHA512>.deriveKey(inputKeyMaterial: .init(data: passwordData), salt: salt, outputByteCount: length)
@@ -10,7 +10,7 @@ func deriveKey(password: String, salt: Data, length: Int) -> SymmetricKey {
 	return key
 }
 
-func generateSalt(size: Int) -> Data {
+public func generateSalt(size: Int) -> Data {
 	var salt = Data(count: size)
 	let result = salt.withUnsafeMutableBytes {
 		SecRandomCopyBytes(kSecRandomDefault, size, $0.baseAddress!)
@@ -19,7 +19,7 @@ func generateSalt(size: Int) -> Data {
 	return salt
 }
 
-func generateIV(size: Int) -> AES.GCM.Nonce? {
+public func generateIV(size: Int) -> AES.GCM.Nonce? {
 	var randomData = Data(count: size)
 	let result = randomData.withUnsafeMutableBytes {
 		SecRandomCopyBytes(kSecRandomDefault, size, $0.baseAddress!)
@@ -28,8 +28,14 @@ func generateIV(size: Int) -> AES.GCM.Nonce? {
 	return try? AES.GCM.Nonce(data: randomData)
 }
 
-func encrypt(data: Data, iv: AES.GCM.Nonce, key: SymmetricKey) -> (data: Data?, tag: Data) {
+// Encrypt data using IV and key. Tag and iv are included in the resulting data
+public func encrypt(data: Data, iv: AES.GCM.Nonce, key: SymmetricKey) -> Data? {
 	let sealedBox = try! AES.GCM.seal(data, using: key, nonce: iv)
 	let encryptedData = sealedBox.combined
-	return (data: encryptedData, sealedBox.tag)
+	return encryptedData
+}
+
+public func decrypt(combinedData: Data, key: SymmetricKey) -> Data? {
+	let sealedBox = try! AES.GCM.SealedBox(combined: combinedData)
+	return try? AES.GCM.open(sealedBox, using: key)
 }
