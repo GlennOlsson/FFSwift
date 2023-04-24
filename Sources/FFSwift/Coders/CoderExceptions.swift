@@ -4,6 +4,7 @@ public enum FFSDecodeError: Error {
 	case notFFSData
 	case decryptionError
 	case notEnoughData
+	case invalidData
 }
 
 public enum FFSEncodeError: Error {

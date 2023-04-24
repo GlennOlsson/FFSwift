@@ -31,20 +31,23 @@ public enum FFSImage {
 	}
 
 	// Get salt and the cipher data of the combined data
-	private static func unwrap(data: Data) -> (salt: Data, cipher: Data) {
+	private static func unwrap(data: Data) throws -> (salt: Data, cipher: Data) {
 		var startIndex = 0
 
 		let getData = { (length: Int) -> Data in
+			guard startIndex + length <= data.count else {
+				throw FFSDecodeError.invalidData
+			}
 			let data = data[startIndex ..< startIndex + length]
 			startIndex += length
 			return data
 		}
 
-		let salt = getData(SALT_LENGTH)
+		let salt = try getData(SALT_LENGTH)
 
-		let cipherLength = UInt64(data: getData(CIPHER_LENGTH_SIZE))
+		let cipherLength = UInt64(data: try getData(CIPHER_LENGTH_SIZE))
 
-		let cipher = getData(Int(cipherLength))
+		let cipher = try getData(Int(cipherLength))
 
 		return (salt: salt, cipher: cipher)
 	}
@@ -87,7 +90,7 @@ public enum FFSImage {
 
 	// Decode FFS image data
 	public static func decodeFFSImageData(imageData: Data, password: String) throws -> Data {
-		let (salt, cipher) = unwrap(data: imageData)
+		let (salt, cipher) = try unwrap(data: imageData)
 
 		let key = deriveKey(password: password, salt: salt, length: KEY_LENGTH)
 

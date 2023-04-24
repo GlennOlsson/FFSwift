@@ -54,7 +54,7 @@ public class ExtensionTests: XCTestCase {
 
 	func testHexEncodedString() {
 		let data = Data([0x00, 0x01, 0x02, 0x03])
-		let string = data.hexEncodedString()
+		let string = data.hexadecimal
 		XCTAssertEqual(string, "00010203")
 	}
 }

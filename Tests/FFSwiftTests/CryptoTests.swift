@@ -34,30 +34,4 @@ public class CryptTests: XCTestCase {
 
 		XCTAssertEqual(decryptedData, input)
 	}
-
-	func testTest() {
-		let keyStr = "d5a423f64b607ea7c65b311d855dc48f36114b227bd0c7a3d403f6158a9e4412"
-		let key = SymmetricKey(data: Data(hexString: keyStr)!)
-		
-
-		let ciphertext = Data(base64Encoded: "LzpSalRKfL47H5rUhqvA")
-		let nonce = Data(hexString: "131348c0987c7eece60fc0bc") // = initialization vector
-		let tag = Data(hexString: "5baa85ff3e7eda3204744ec74b71d523")
-
-		let plainData = "This is a plain text".data(using: .utf8)
-		let sealedData = try! AES.GCM.seal(plainData!, using: key, nonce: AES.GCM.Nonce(data:nonce!))
-		let encryptedContent = try! sealedData.combined!
-
-		logger.notice("Nonce: \(sealedData.nonce.withUnsafeBytes { Data(Array($0)).hexadecimal }, privacy: .public)")
-		logger.notice("Tag: \(sealedData.tag.hexadecimal, privacy: .public)")
-		logger.notice("Data: \(sealedData.ciphertext.base64EncodedString(), privacy: .public)")
-
-		logger.notice("Encrypted content: \(encryptedContent.hexadecimal, privacy: .public)")
-
-
-		let sealedBox = try! AES.GCM.SealedBox(combined: encryptedContent)
-
-		let decryptedData = try! AES.GCM.open(sealedBox, using: key)
-		logger.notice("last \(String(decoding: decryptedData, as: UTF8.self), privacy: .public)")
-	}
 }

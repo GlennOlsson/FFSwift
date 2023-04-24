@@ -10,15 +10,15 @@ public protocol DataInteger where Self: FixedWidthInteger {
 	init(data: Data)
 }
 
-extension DataInteger {
+public extension DataInteger {
 	/// Convert integer to data
-	public var data: Data {
-		var value = self.bigEndian
+	var data: Data {
+		var value = bigEndian
 		return Data(bytes: &value, count: MemoryLayout<Self>.size)
 	}
 
 	// Convert data to integer
-	public init(data: Data) {
+	init(data: Data) {
 		// Copy
 		let partData = Data(data)
 		self = partData.withUnsafeBytes { $0.load(as: Self.self) }.bigEndian
@@ -33,30 +33,27 @@ extension UInt16: DataInteger {}
 
 extension UInt8: DataInteger {}
 
-extension Data {
-	public func hexEncodedString() -> String {
-		return map { String(format: "%02hhx", $0) }.joined()
+public extension Data {
+	init?(hexString: String) {
+		let len = hexString.count / 2
+		var data = Data(capacity: len)
+		var i = hexString.startIndex
+		for _ in 0 ..< len {
+			let j = hexString.index(i, offsetBy: 2)
+			let bytes = hexString[i ..< j]
+			if var num = UInt8(bytes, radix: 16) {
+				data.append(&num, count: 1)
+			} else {
+				return nil
+			}
+			i = j
+		}
+		self = data
 	}
 
-	public init?(hexString: String) {
-      let len = hexString.count / 2
-      var data = Data(capacity: len)
-      var i = hexString.startIndex
-      for _ in 0..<len {
-        let j = hexString.index(i, offsetBy: 2)
-        let bytes = hexString[i..<j]
-        if var num = UInt8(bytes, radix: 16) {
-          data.append(&num, count: 1)
-        } else {
-          return nil
-        }
-        i = j
-      }
-      self = data
-    }
-    /// Hexadecimal string representation of `Data` object.
-    public var hexadecimal: String {
-        return map { String(format: "%02x", $0) }
-            .joined()
-    }
+	/// Hexadecimal string representation of `Data` object.
+	var hexadecimal: String {
+		return map { String(format: "%02x", $0) }
+			.joined()
+	}
 }
