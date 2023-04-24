@@ -4,7 +4,7 @@ import os
 
 let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-image")
 
-public class FFSImage {
+public enum FFSImage {
 	// 128 bits
 	private static let SALT_LENGTH = 16
 	private static let KEY_LENGTH = 16
@@ -17,19 +17,20 @@ public class FFSImage {
 	private static let CIPHER_LENGTH_SIZE = UInt64.bitWidth / 8
 
 	// Combine encrypted data, key salt and encryption iv
-	private static func combine(data: Data, tag: Data, salt: Data, iv: AES.GCM.Nonce) -> Data {
-		var combined = Data(iv)
-		combined.append(tag)
-		combined.append(salt)
-		combined.append(UInt64(data.count).data)
-		combined.append(data)
+	private static func combine(data: Data, salt: Data) -> Data {
+		var combined = Data()
 
-		logger.notice("Appended \(salt.hexEncodedString(), privacy: .public) salt, \(data.count) of data to \(combined.count) bytes of data")
+		combined.append(salt)
+
+		let size = UInt64(data.count)
+		combined.append(size.data)
+
+		combined.append(data)
 
 		return combined
 	}
 
-	// Get salt, iv, and the remaining data of the combined data
+	// Get salt and the cipher data of the combined data
 	private static func unwrap(data: Data) -> (salt: Data, cipher: Data) {
 		var startIndex = 0
 
@@ -39,19 +40,10 @@ public class FFSImage {
 			return data
 		}
 
-		logger.notice("Total data size: \(data.count)")
-
 		let salt = getData(SALT_LENGTH)
 
-		logger.notice("SALT: \(salt.hexEncodedString(), privacy: .public), startIndex: \(startIndex)")
+		let cipherLength = UInt64(data: getData(CIPHER_LENGTH_SIZE))
 
-		let cipherLengthData = getData(CIPHER_LENGTH_SIZE)
-		logger.notice("Cipher length data: \(cipherLengthData.hexEncodedString(), privacy: .public), ")
-		let cipherLength = UInt64(data: cipherLengthData)
-
-		logger.notice("Got \(salt.count) bytes of salt, \(cipherLength) size of data")
-
-		// create integer from data
 		let cipher = getData(Int(cipherLength))
 
 		return (salt: salt, cipher: cipher)
@@ -59,7 +51,6 @@ public class FFSImage {
 
 	// Create image data for FFS image, including FFS header, encrypting data and adding salts
 	public static func createFFSImageData(data: Data, password: String) throws -> Data {
-		logger.notice("Creating FFS image data")
 		// Create header
 		let header = FFSHeader(dataCount: data.count)
 
@@ -89,18 +80,7 @@ public class FFSImage {
 			throw FFSEncodeError.encryptionError
 		}
 
-		var imageData = Data()
-		imageData.append(salt)
-
-		// Append size of encrypted data
-		let size = UInt64(encryptedData.count)
-		imageData.append(size.data)
-
-		imageData.append(encryptedData)
-
-		// Log key as hex string
-		// let keyData = key.withUnsafeBytes { Data($0) }
-		// logger.notice("Encrypted using: \nKey: \(keyData.hexEncodedString(), privacy: .public), \ntag: \(result.tag.hexEncodedString(), privacy: .public), \nsalt: \(salt.hexEncodedString(), privacy: .public), \niv: \(iv.withUnsafeBytes({ Data($0) }) .hexEncodedString(), privacy: .public), \ncipher: \(imageData.hexEncodedString(), privacy: .public)")
+		let imageData = combine(data: encryptedData, salt: salt)
 
 		return imageData
 	}
@@ -111,30 +91,21 @@ public class FFSImage {
 
 		let key = deriveKey(password: password, salt: salt, length: KEY_LENGTH)
 
-		// let keyData = key.withUnsafeBytes { Data($0) }
-		// logger.notice("Decrypting using: \nKey: \(keyData.hexEncodedString(), privacy: .public), \ntag: \(tag.hexEncodedString(), privacy: .public), \nsalt: \(salt.hexEncodedString(), privacy: .public), \niv: \(iv.withUnsafeBytes({ Data($0) }) .hexEncodedString(), privacy: .public), \ncipher: \(cipher.hexEncodedString(), privacy: .public)")
-
-		// logger.notice("Cipher length \(cipher.count), integer length \(CIPHER_LENGTH_SIZE), range \(0 ..< CIPHER_LENGTH_SIZE, privacy: .public))")
-
-		// let cipherLengthData = Data(cipher)[0 ..< CIPHER_LENGTH_SIZE]
-		// logger.notice("Cipher length data: \(cipherLengthData.hexEncodedString(), privacy: .public)")
-		// let cipherLength = UInt64(data: cipherLengthData)
-		// logger.notice("Cipher length: \(cipherLength)")
-		// let cipherData = Data(Data(cipher)[CIPHER_LENGTH_SIZE ..< (Int(cipherLength) + CIPHER_LENGTH_SIZE)])
-
-		// logger.notice("CIPHER CLEAN \(cipherData.hexEncodedString(), privacy: .public)")
-
-		guard var decryptedData = decrypt(combinedData: cipher, key: key) else{
+		guard var decryptedData = decrypt(combinedData: cipher, key: key) else {
 			logger.notice("Could not decrypt data")
 			throw FFSDecodeError.decryptionError
 		}
 
-		var asBytes = [UInt8](decryptedData)
+		guard let header = FFSHeader(raw: &decryptedData) else {
+			logger.notice("Could not decode header")
+			throw FFSDecodeError.notFFSData
+		}
 
-		let header = FFSHeader(raw: &asBytes)
+		guard decryptedData.count >= header.dataCount else {
+			logger.notice("Decrypted data is smaller than header data count")
+			throw FFSDecodeError.notEnoughData
+		}
 
-		logger.notice("Decrypted, \(String(decoding: decryptedData, as: UTF8.self), privacy: .public)")
-
-		return Data(asBytes)
+		return decryptedData
 	}
 }

@@ -3,6 +3,7 @@ import Foundation
 public enum FFSDecodeError: Error {
 	case notFFSData
 	case decryptionError
+	case notEnoughData
 }
 
 public enum FFSEncodeError: Error {

@@ -1,3 +1,7 @@
+import Foundation
+
+import os
+
 struct FFSHeader {
 	static let magic = "FFS"
 
@@ -23,54 +27,46 @@ struct FFSHeader {
 	}
 
 	// Get byte representation of header
-	func raw() -> [UInt8] {
-		var bytes: [UInt8] = []
+	func raw() -> Data {
+		var data = Data()
 
-		for byte in FFSHeader.magic.utf8 {
-			bytes.append(byte)
-		}
+		data.append(contentsOf: FFSHeader.magic.utf8)
 
-		bytes.append(majorVersion)
-		bytes.append(minorVersion)
+		data.append(majorVersion.data)
+		data.append(minorVersion.data)
 
-		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 24))
-		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 16))
-		bytes.append(UInt8(truncatingIfNeeded: dataCount >> 8))
+		data.append(dataCount.data)
 
-		bytes.append(UInt8(truncatingIfNeeded: dataCount))
-
-		return bytes
+		return data
 	}
 
-	// Create header from byte representation
-	init?(raw: inout [UInt8]) {
+	// Create header from byte representation and advance data pointer
+	init?(raw: inout Data) {
+		let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-coders")
 		// Make sure that there is enough data to decode the header
-		guard raw.count >= FFSHeader.count() else {
+		let rawCount = raw.count
+		guard rawCount >= FFSHeader.count() else {
+			logger.notice("Not enough data to decode header (\(rawCount) < \(FFSHeader.count()))")
 			return nil
 		}
 
 		// Assert that the magic is correct
-		guard let magic = String(bytes: raw[0..<3], encoding: .utf8) else {
+		guard let magic = String(data: raw[0..<3], encoding: .utf8) else {
+			logger.notice("Could not decode magic")
 			return nil
 		}
 
-		guard magic == "FFS" else {
+		guard magic == FFSHeader.magic else {
+			logger.notice("Magic is not correct (\(magic, privacy: .public) != \(FFSHeader.magic, privacy: .public))")
 			return nil
 		}
 
 		self.majorVersion = raw[3]
 		self.minorVersion = raw[4]
 
-		self.dataCount = UInt32(raw[5]) << 24
-			| UInt32(raw[6]) << 16
-			| UInt32(raw[7]) << 8
-			| UInt32(raw[8])
+		let dataCount = UInt32(data: raw[5..<9])
+		self.dataCount = dataCount
 		
-		raw.removeFirst(FFSHeader.count())
-
-		// Make sure that remaining data is at least as long as the dataCount
-		guard raw.count >= self.dataCount else {
-			return nil
-		}
+		raw = raw.advanced(by: FFSHeader.count())
 	}
 }

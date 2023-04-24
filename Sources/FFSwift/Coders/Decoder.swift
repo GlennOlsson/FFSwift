@@ -10,7 +10,6 @@ import PNG
 
 // Convert list of 16 bit pixels to bytes
 func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> [UInt8] {
-
 	var bytes: [UInt8] = []
 
 	for pixel in pixels {
@@ -26,7 +25,7 @@ func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> [UInt8] {
 	return bytes
 }
 
-class FFSOutStream: PNG.Bytestream.Source{
+class FFSOutStream: PNG.Bytestream.Source {
 	let data: [UInt8]
 
 	var index = 0
@@ -37,15 +36,14 @@ class FFSOutStream: PNG.Bytestream.Source{
 
 	func read(count: Int) -> [UInt8]? {
 		let endIndex = index + count
-		let bytes = data[index..<endIndex]
+		let bytes = data[index ..< endIndex]
 		index = endIndex
 		return Array(bytes)
 	}
-
 }
-public class FFSDecoder {
 
-	public static func decode(_ data: Data, password: String) throws -> Data {
+public enum FFSDecoder {
+	public static func decode(_ data: Data, password _: String) throws -> Data {
 		// Decode png data and decrypt with password
 		var stream = FFSOutStream(data: [UInt8](data))
 
@@ -53,7 +51,7 @@ public class FFSDecoder {
 
 		let pixels = png.unpack(as: PNG.RGBA<UInt16>.self)
 
-		var bytes = pixelsToBytes(pixels)
+		var bytes = Data(pixelsToBytes(pixels))
 
 		guard let header = FFSHeader(raw: &bytes) else {
 			throw FFSDecodeError.notFFSData
@@ -61,9 +59,8 @@ public class FFSDecoder {
 
 		let relevantByteCount = Int(header.dataCount)
 
-		let relevantBytes = bytes[0..<relevantByteCount]
+		let relevantBytes = bytes[0 ..< relevantByteCount]
 
 		return Data(relevantBytes)
 	}
-
 }

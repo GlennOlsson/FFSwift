@@ -21,7 +21,7 @@ class FFSSteam: PNG.Bytestream.Destination {
 }
 
 // Convert list of bytes to list of 16 bit pixels
-func bytesToPixels(_ bytes: [UInt8]) -> [PNG.RGBA<UInt16>] {
+func bytesToPixels(_ bytes: Data) -> [PNG.RGBA<UInt16>] {
 	// Must be divisible by 8
 	if bytes.count % 8 != 0 {
 		fatalError("Odd number of bytes, must be divisible by 8 (2 bytes per component, 4 components per pixel)")
@@ -54,7 +54,7 @@ public enum FFSEncoder {
 		// Encrypt data using password, and encode as png
 		let header = FFSHeader(dataCount: data.count)
 
-		let unencryptedData: [UInt8] = header.raw() + data
+		let unencryptedData = header.raw() + data
 
 		// TODO: Encrypt data
 
@@ -73,7 +73,7 @@ public enum FFSEncoder {
 		let totalBytes = totalPixels * 8
 
 		// Add random data to fill the number of bytes
-		var allData: [UInt8] = unencryptedData
+		var allData = unencryptedData
 		while allData.count < totalBytes {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}
