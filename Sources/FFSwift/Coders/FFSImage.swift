@@ -74,9 +74,10 @@ public enum FFSImage {
 		unencryptedData.append(contentsOf: header.raw())
 		unencryptedData.append(contentsOf: data)
 
+		logger.notice("ENCRYPTING DATA: \(unencryptedData.hexadecimal, privacy: .public)")
+
 		// Encrypt data
-		let result = encrypt(data: unencryptedData, iv: iv, key: key)
-		guard let encryptedData = result else {
+		guard let encryptedData = encrypt(data: unencryptedData, iv: iv, key: key) else {
 			throw FFSEncodeError.encryptionError
 		}
 
@@ -86,17 +87,19 @@ public enum FFSImage {
 	}
 
 	// Decode FFS image data
-	public static func decodeFFSImageData(imageData: Data, password: String) throws -> Data {
+	public static func decodeFFSImageData(imageData: Data, password: String) throws -> (Data, FFSHeader) {
 		let (salt, cipher) = try unwrap(data: imageData)
 
 		let key = deriveKey(password: password, salt: salt, length: KEY_LENGTH)
 
-		guard var decryptedData = decrypt(combinedData: cipher, key: key) else {
+		guard let decryptedData = decrypt(combinedData: cipher, key: key) else {
 			logger.notice("Could not decrypt data")
 			throw FFSDecodeError.decryptionError
 		}
 
-		guard let header = FFSHeader(raw: &decryptedData) else {
+		logger.notice("DECRYPTED DATA: \(decryptedData.hexadecimal, privacy: .public)")
+
+		guard let header = FFSHeader(raw: decryptedData) else {
 			logger.notice("Could not decode header")
 			throw FFSDecodeError.notFFSData
 		}
@@ -106,6 +109,6 @@ public enum FFSImage {
 			throw FFSDecodeError.notEnoughData
 		}
 
-		return decryptedData
+		return (decryptedData, header)
 	}
 }

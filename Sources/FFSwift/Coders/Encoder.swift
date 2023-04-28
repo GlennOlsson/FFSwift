@@ -50,15 +50,12 @@ func bytesToPixels(_ bytes: Data) -> [PNG.RGBA<UInt16>] {
 }
 
 public enum FFSEncoder {
-	public static func encode(_ data: Data, password _: String) -> Data {
-		// Encrypt data using password, and encode as png
-		let header = FFSHeader(dataCount: data.count)
+	public static func encode(_ data: Data, password: String) throws -> Data {
+		let ffsData = try FFSImage.createFFSImageData(data: data, password: password)
 
-		let unencryptedData = header.raw() + data
+		// logger.notice("Encoded \(ffsData.hexadecimal, privacy: .public)")
 
-		// TODO: Encrypt data
-
-		let requiredBytes = unencryptedData.count
+		let requiredBytes = ffsData.count
 
 		// Let pixels be the number of bytes divided by 8, rounded up
 		// 8 because 2 bytes per component, and 4 components (with alpha)
@@ -73,7 +70,7 @@ public enum FFSEncoder {
 		let totalBytes = totalPixels * 8
 
 		// Add random data to fill the number of bytes
-		var allData = unencryptedData
+		var allData = ffsData
 		while allData.count < totalBytes {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}

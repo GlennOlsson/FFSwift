@@ -43,7 +43,7 @@ class FFSOutStream: PNG.Bytestream.Source {
 }
 
 public enum FFSDecoder {
-	public static func decode(_ data: Data, password _: String) throws -> Data {
+	public static func decode(_ data: Data, password: String) throws -> Data {
 		// Decode png data and decrypt with password
 		var stream = FFSOutStream(data: [UInt8](data))
 
@@ -51,16 +51,22 @@ public enum FFSDecoder {
 
 		let pixels = png.unpack(as: PNG.RGBA<UInt16>.self)
 
-		var bytes = Data(pixelsToBytes(pixels))
+		let bytes = Data(pixelsToBytes(pixels))
 
-		guard let header = FFSHeader(raw: &bytes) else {
-			throw FFSDecodeError.notFFSData
-		}
+		let (decodedData, header) = try FFSImage.decodeFFSImageData(imageData: bytes, password: password)
 
-		let relevantByteCount = Int(header.dataCount)
+		let lowerBound = FFSHeader.count()
+		let upperBound = lowerBound + Int(header.dataCount)
 
-		let relevantBytes = bytes[0 ..< relevantByteCount]
+		logger.notice("Range \(lowerBound), \(upperBound))")
 
-		return Data(relevantBytes)
+		let relevantData = decodedData[lowerBound ..< upperBound]
+		// var relevantData = Data()
+		// relevantData.append(contentsOf: decodedData[lowerBound ..< upperBound])
+		// decodedData.copyBytes(to: &relevantData, from: lowerBound ..< upperBound)
+
+		// logger.notice("Decoded \(decodedData.hexadecimal, privacy: .public), as string: \(String(data: decodedData, encoding: .utf8) ?? "nil", privacy: .public)")
+
+		return relevantData
 	}
 }

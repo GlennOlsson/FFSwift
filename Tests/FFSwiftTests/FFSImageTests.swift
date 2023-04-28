@@ -19,7 +19,7 @@ class FFSImageTests: XCTestCase {
 
 		let password = "password"
 
-		let decodedData = try! FFSImage.decodeFFSImageData(imageData: imageData, password: password)
+		let (decodedData, _) = try! FFSImage.decodeFFSImageData(imageData: imageData, password: password)
 
 		let expectedData = "Hello, World!".data(using: .utf8)!
 

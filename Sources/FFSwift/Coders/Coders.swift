@@ -2,7 +2,7 @@ import Foundation
 
 import os
 
-struct FFSHeader {
+public struct FFSHeader {
 	static let magic = "FFS"
 
 	let majorVersion: UInt8
@@ -41,7 +41,7 @@ struct FFSHeader {
 	}
 
 	// Create header from byte representation and advance data pointer
-	init?(raw: inout Data) {
+	init?(raw: Data) {
 		let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-coders")
 		// Make sure that there is enough data to decode the header
 		let rawCount = raw.count
@@ -66,7 +66,5 @@ struct FFSHeader {
 
 		let dataCount = UInt32(data: raw[5..<9])
 		self.dataCount = dataCount
-		
-		raw = raw.advanced(by: FFSHeader.count())
 	}
 }
