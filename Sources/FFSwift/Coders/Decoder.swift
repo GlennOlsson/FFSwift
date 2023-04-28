@@ -55,17 +55,7 @@ public enum FFSDecoder {
 
 		let (decodedData, header) = try FFSImage.decodeFFSImageData(imageData: bytes, password: password)
 
-		let lowerBound = FFSHeader.count()
-		let upperBound = lowerBound + Int(header.dataCount)
-
-		logger.notice("Range \(lowerBound), \(upperBound))")
-
-		let relevantData = decodedData[lowerBound ..< upperBound]
-		// var relevantData = Data()
-		// relevantData.append(contentsOf: decodedData[lowerBound ..< upperBound])
-		// decodedData.copyBytes(to: &relevantData, from: lowerBound ..< upperBound)
-
-		// logger.notice("Decoded \(decodedData.hexadecimal, privacy: .public), as string: \(String(data: decodedData, encoding: .utf8) ?? "nil", privacy: .public)")
+		let relevantData = decodedData[header.dataRange]
 
 		return relevantData
 	}

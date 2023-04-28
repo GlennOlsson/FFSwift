@@ -53,8 +53,6 @@ public enum FFSEncoder {
 	public static func encode(_ data: Data, password: String) throws -> Data {
 		let ffsData = try FFSImage.createFFSImageData(data: data, password: password)
 
-		// logger.notice("Encoded \(ffsData.hexadecimal, privacy: .public)")
-
 		let requiredBytes = ffsData.count
 
 		// Let pixels be the number of bytes divided by 8, rounded up

@@ -26,20 +26,6 @@ public struct FFSHeader {
 		return FFSHeader.magic.count + 1 + 1 + 4
 	}
 
-	// Get byte representation of header
-	func raw() -> Data {
-		var data = Data()
-
-		data.append(contentsOf: FFSHeader.magic.utf8)
-
-		data.append(majorVersion.data)
-		data.append(minorVersion.data)
-
-		data.append(dataCount.data)
-
-		return data
-	}
-
 	// Create header from byte representation and advance data pointer
 	init?(raw: Data) {
 		let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-coders")
@@ -66,5 +52,23 @@ public struct FFSHeader {
 
 		let dataCount = UInt32(data: raw[5..<9])
 		self.dataCount = dataCount
+	}
+
+	// Get byte representation of header
+	func raw() -> Data {
+		var data = Data()
+
+		data.append(contentsOf: FFSHeader.magic.utf8)
+
+		data.append(majorVersion.data)
+		data.append(minorVersion.data)
+
+		data.append(dataCount.data)
+
+		return data
+	}
+
+	var dataRange: Range<Int> {
+		return FFSHeader.count() ..< FFSHeader.count() + Int(dataCount)
 	}
 }

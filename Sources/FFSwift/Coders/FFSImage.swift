@@ -74,8 +74,6 @@ public enum FFSImage {
 		unencryptedData.append(contentsOf: header.raw())
 		unencryptedData.append(contentsOf: data)
 
-		logger.notice("ENCRYPTING DATA: \(unencryptedData.hexadecimal, privacy: .public)")
-
 		// Encrypt data
 		guard let encryptedData = encrypt(data: unencryptedData, iv: iv, key: key) else {
 			throw FFSEncodeError.encryptionError
@@ -96,8 +94,6 @@ public enum FFSImage {
 			logger.notice("Could not decrypt data")
 			throw FFSDecodeError.decryptionError
 		}
-
-		logger.notice("DECRYPTED DATA: \(decryptedData.hexadecimal, privacy: .public)")
 
 		guard let header = FFSHeader(raw: decryptedData) else {
 			logger.notice("Could not decode header")
