@@ -5,13 +5,10 @@ import os
 let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-image")
 
 public enum FFSImage {
-	// 128 bits
-	private static let SALT_LENGTH = 16
-	private static let KEY_LENGTH = 16
 
-	private static let TAG_SIZE = 16 // https://developer.apple.com/documentation/cryptokit/aes/gcm/sealedbox/tag
-
-	private static let IV_LENGTH = 12 // https://developer.apple.com/documentation/cryptokit/aes/gcm/sealedbox/combined
+	// 256 bits
+	private static let KEY_LENGTH = 32
+	private static let SALT_LENGTH = 32
 
 	// 64 bit integer
 	private static let CIPHER_LENGTH_SIZE = UInt64.bitWidth / 8
@@ -69,7 +66,7 @@ public enum FFSImage {
 			throw FFSEncodeError.keyGenerationError
 		}
 
-		guard let iv = generateIV(size: IV_LENGTH) else {
+		guard let iv = generateIV() else {
 			throw FFSEncodeError.ivGenerationError
 		}
 

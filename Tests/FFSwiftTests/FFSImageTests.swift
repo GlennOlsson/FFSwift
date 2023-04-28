@@ -2,18 +2,19 @@
 import XCTest
 
 class FFSImageTests: XCTestCase {
-
 	func testCreateFFSImageData() {
 		let data = "Hello, World!".data(using: .utf8)!
 		let password = "password"
 
 		let imageData = try! FFSImage.createFFSImageData(data: data, password: password)
 
+		print(imageData.hexadecimal)
+
 		XCTAssertNotNil(imageData)
 	}
 
 	func testDecodeFFSImageData() {
-		let dataString  = "6735ed6618a36318e4f5ba0dd3967dc400000000000000324e039e7ef137cf0bdd1ac374ad1d7e5a2650c6cffd806809bc1046e711da13007fb54bf9674ad1e4ca900de591bcc42c853a"
+		let dataString  = "7c40b75ee2d4d5cfa67f2d674b624d36ea251bef19012325367f82d4984278d0000000000000003247c401a521bd7065654464660fceddae8256fbde1ddd85d5a25852e3c9b1c75ac993b8fa7c3b9b69409825203ab9be553053"
 		let imageData = Data(hexString: dataString)!
 
 		let password = "password"
@@ -26,7 +27,7 @@ class FFSImageTests: XCTestCase {
 	}
 
 	func testDecodeWithWrongPassword() {
-		let dataString  = "6735ed6618a36318e4f5ba0dd3967dc400000000000000324e039e7ef137cf0bdd1ac374ad1d7e5a2650c6cffd806809bc1046e711da13007fb54bf9674ad1e4ca900de591bcc42c853a"
+		let dataString  = "7c40b75ee2d4d5cfa67f2d674b624d36ea251bef19012325367f82d4984278d0000000000000003247c401a521bd7065654464660fceddae8256fbde1ddd85d5a25852e3c9b1c75ac993b8fa7c3b9b69409825203ab9be553053"
 		let imageData = Data(hexString: dataString)!
 
 		let password = "wrongPassword"
@@ -45,5 +46,4 @@ class FFSImageTests: XCTestCase {
 		}
 	}
 
-	// func 
 }

@@ -41,10 +41,9 @@ final class FlickrTest: XCTestCase {
 		await client.deleteFile(id: id)
 	}
 
-	func testFlickrIntegration() async {
+	func testFlickrIntegration() async throws {
 		guard let client = FlickrTest.loadClient() else {
-			XCTFail("Could not load client, check environment variables")
-			return
+			throw XCTSkip("Could not load client, check environment variables")
 		}
 
 		let data = try! Data(contentsOf: URL(fileURLWithPath: testImagePath))

@@ -19,10 +19,10 @@ public func generateSalt(size: Int) -> Data {
 	return salt
 }
 
-public func generateIV(size: Int) -> AES.GCM.Nonce? {
-	var randomData = Data(count: size)
+public func generateIV() -> AES.GCM.Nonce? {
+	var randomData = Data(count: 12)
 	let result = randomData.withUnsafeMutableBytes {
-		SecRandomCopyBytes(kSecRandomDefault, size, $0.baseAddress!)
+		SecRandomCopyBytes(kSecRandomDefault, 12, $0.baseAddress!)
 	}
 	assert(result == errSecSuccess, "Failed to generate randomData for IV")
 	return try? AES.GCM.Nonce(data: randomData)
@@ -30,12 +30,16 @@ public func generateIV(size: Int) -> AES.GCM.Nonce? {
 
 // Encrypt data using IV and key. Tag and iv are included in the resulting data
 public func encrypt(data: Data, iv: AES.GCM.Nonce, key: SymmetricKey) -> Data? {
-	let sealedBox = try! AES.GCM.seal(data, using: key, nonce: iv)
-	let encryptedData = sealedBox.combined
+	let sealedBox = try? AES.GCM.seal(data, using: key, nonce: iv)
+	let encryptedData = sealedBox?.combined
 	return encryptedData
 }
 
 public func decrypt(combinedData: Data, key: SymmetricKey) -> Data? {
-	let sealedBox = try! AES.GCM.SealedBox(combined: combinedData)
-	return try? AES.GCM.open(sealedBox, using: key)
+	let sealedBox = try? AES.GCM.SealedBox(combined: combinedData)
+	var data: Data?
+	if sealedBox != nil {
+		data = try? AES.GCM.open(sealedBox!, using: key)
+	}
+	return data
 }
