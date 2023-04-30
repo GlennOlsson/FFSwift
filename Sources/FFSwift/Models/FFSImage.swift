@@ -1,8 +1,5 @@
 import CryptoKit
 import Foundation
-import os
-
-let logger = Logger(subsystem: "se.glennolsson.ffswift", category: "ffs-image")
 
 public enum FFSImage {
 
@@ -91,17 +88,14 @@ public enum FFSImage {
 		let key = deriveKey(password: password, salt: salt, length: KEY_LENGTH)
 
 		guard let decryptedData = decrypt(combinedData: cipher, key: key) else {
-			logger.notice("Could not decrypt data")
 			throw FFSDecodeError.decryptionError
 		}
 
 		guard let header = try? FFSHeader(raw: decryptedData) else {
-			logger.notice("Could not decode header")
 			throw FFSDecodeError.notFFSData
 		}
 
 		guard decryptedData.count >= header.dataCount else {
-			logger.notice("Decrypted data is smaller than header data count")
 			throw FFSDecodeError.notEnoughData
 		}
 

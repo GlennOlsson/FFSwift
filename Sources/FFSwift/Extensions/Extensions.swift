@@ -1,7 +1,5 @@
 import Foundation
 
-import os
-
 public protocol DataInteger where Self: FixedWidthInteger {
 	// Property to get the integer as data
 	var data: Data { get }

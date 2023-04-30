@@ -1,7 +1,6 @@
 import FFSwift
 import Foundation
 import XCTest
-import os
 
 public class ExtensionTests: XCTestCase {
 	func testUInt64FromData() {
