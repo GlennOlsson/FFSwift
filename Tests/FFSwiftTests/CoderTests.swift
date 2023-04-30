@@ -82,52 +82,53 @@ public class CoderTests: XCTestCase {
 		}
 	}
 
-	func testEncodingHeader() {
-		let minor = UInt8(1)
-		let major = UInt8(2)
+	func testEncodingHeader() throws {
+		let version = UInt8(0)
 		let dataCount = UInt32(3)
 
-		let header = FFSHeader(majorVersion: major, minorVersion: minor, dataCount: dataCount)
+		let header = FFSHeader(version: version, dataCount: dataCount)
 
-		let raw = header.raw()
+		let raw = header.raw
 
-		XCTAssertEqual(raw.count, 9)
+		XCTAssertEqual(raw.count, 8)
 
-		let decodedHeader = FFSHeader(raw: raw)
+		let decodedHeader = try FFSHeader(raw: raw)
 
 		XCTAssertNotNil(decodedHeader)
-		XCTAssertEqual(decodedHeader?.majorVersion, major)
-		XCTAssertEqual(decodedHeader?.minorVersion, minor)
-		XCTAssertEqual(decodedHeader?.dataCount, dataCount)
+		XCTAssertEqual(decodedHeader.version, version)
+		XCTAssertEqual(decodedHeader.dataCount, dataCount)
 	}
 
 	func testDecodingFFSHeaderWithWrongMagic() {
-		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+		let header = FFSHeader(version: 1, dataCount: 3)
 
-		var data = header.raw()
+		var data = header.raw
 		data[0] = "A".data(using: .utf8)![0]
 
-		let decodedHeader = FFSHeader(raw: data)
-		XCTAssertNil(decodedHeader)
+		XCTAssertThrowsError(try FFSHeader(raw: data)) { error in
+			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badMagic)
+		}
 	}
 
 	func testDecodingFFSHeaderWithTooLitleData() {
-		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+		let header = FFSHeader(version: 1, dataCount: 3)
 
-		var data = header.raw()
+		var data = header.raw
 		data.removeLast()
 
-		let decodedHeader = FFSHeader(raw: data)
-		XCTAssertNil(decodedHeader)
+		XCTAssertThrowsError(try FFSHeader(raw: data)) { error in
+			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badDataCount)
+		}
 	}
 
  	func testDecodingFFSHeaderWithBadMagic() {
-		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+		let header = FFSHeader(version: 1, dataCount: 3)
 
-		var data = header.raw()
+		var data = header.raw
 		data[0] = 0xFF
 
-		let decodedHeader = FFSHeader(raw: data)
-		XCTAssertNil(decodedHeader)
+		XCTAssertThrowsError(try FFSHeader(raw: data)) { error in
+			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badMagic)
+		}
 	}
 }

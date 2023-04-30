@@ -71,7 +71,7 @@ public enum FFSImage {
 		}
 
 		var unencryptedData = Data()
-		unencryptedData.append(contentsOf: header.raw())
+		unencryptedData.append(contentsOf: header.raw)
 		unencryptedData.append(contentsOf: data)
 
 		// Encrypt data
@@ -95,7 +95,7 @@ public enum FFSImage {
 			throw FFSDecodeError.decryptionError
 		}
 
-		guard let header = FFSHeader(raw: decryptedData) else {
+		guard let header = try? FFSHeader(raw: decryptedData) else {
 			logger.notice("Could not decode header")
 			throw FFSDecodeError.notFFSData
 		}
