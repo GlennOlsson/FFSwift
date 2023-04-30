@@ -12,4 +12,5 @@ public enum FFSEncodeError: Error {
 	case saltGenerationError
 	case ivGenerationError
 	case keyGenerationError
+	case badDataCount
 }

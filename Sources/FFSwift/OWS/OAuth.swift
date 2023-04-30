@@ -60,10 +60,10 @@ open class OAuth {
 		let encodedParameterString: String = parameterString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 		let encodedUrl: String = url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!.replacingOccurrences(of: url.query ?? "", with: encodedParameterString)
 
-		let timestamp: String = getTimestamp()
+		let timestamp: String = self.getTimestamp()
 		let encodedTimestamp: String = timestamp.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 
-		let nonce: String = getNonce()
+		let nonce: String = self.getNonce()
 		let encodedNonce: String = nonce.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
 
 		let encodedMethod: String = httpMethod.uppercased()

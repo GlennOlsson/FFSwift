@@ -21,10 +21,10 @@ class FFSSteam: PNG.Bytestream.Destination {
 }
 
 // Convert list of bytes to list of 16 bit pixels
-func bytesToPixels(_ bytes: Data) -> [PNG.RGBA<UInt16>] {
+func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 	// Must be divisible by 8
 	if bytes.count % 8 != 0 {
-		fatalError("Odd number of bytes, must be divisible by 8 (2 bytes per component, 4 components per pixel)")
+		throw FFSEncodeError.badDataCount
 	}
 
 	var doubleBytes: [UInt16] = []
@@ -73,7 +73,7 @@ public enum FFSEncoder {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}
 
-		let pixels = bytesToPixels(allData)
+		let pixels = try bytesToPixels(allData)
 
 		let image = PNG.Data.Rectangular(
 			packing: pixels,

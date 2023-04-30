@@ -100,4 +100,34 @@ public class CoderTests: XCTestCase {
 		XCTAssertEqual(decodedHeader?.minorVersion, minor)
 		XCTAssertEqual(decodedHeader?.dataCount, dataCount)
 	}
+
+	func testDecodingFFSHeaderWithWrongMagic() {
+		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+
+		var data = header.raw()
+		data[0] = "A".data(using: .utf8)![0]
+
+		let decodedHeader = FFSHeader(raw: data)
+		XCTAssertNil(decodedHeader)
+	}
+
+	func testDecodingFFSHeaderWithTooLitleData() {
+		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+
+		var data = header.raw()
+		data.removeLast()
+
+		let decodedHeader = FFSHeader(raw: data)
+		XCTAssertNil(decodedHeader)
+	}
+
+ 	func testDecodingFFSHeaderWithBadMagic() {
+		let header = FFSHeader(majorVersion: 1, minorVersion: 2, dataCount: 3)
+
+		var data = header.raw()
+		data[0] = 0xFF
+
+		let decodedHeader = FFSHeader(raw: data)
+		XCTAssertNil(decodedHeader)
+	}
 }

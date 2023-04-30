@@ -9,8 +9,8 @@ import Foundation
 import PNG
 
 // Convert list of 16 bit pixels to bytes
-func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> [UInt8] {
-	var bytes: [UInt8] = []
+func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> Data {
+	var bytes = Data()
 
 	for pixel in pixels {
 		for component in [pixel.r, pixel.g, pixel.b, pixel.a] {
