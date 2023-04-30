@@ -38,7 +38,7 @@ let package = Package(
 			dependencies: ["FFSwift"]
 		),
 		.executableTarget(
-			name: "FFSSwiftProfiler",
+			name: "FFSwiftProfiler",
 			dependencies: ["FFSwift"]
 		),
 	]
