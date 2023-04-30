@@ -8,35 +8,46 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
     var data: [UInt8]
 
     var readPosition = 0
+    var writePosition: Int
 
     var readableData: Int {
-        return data.count - readPosition
+        return writePosition - readPosition
     }
+
+    let dispatchQueue = DispatchQueue(label: "FFSBinaryStream", qos: .userInitiated, attributes: .concurrent)
 
     init(_ initialData: [UInt8] = []) {
         data = initialData
+        self.writePosition = initialData.count
     }
 
     func read(count: Int) -> [UInt8]? {
-        if count > readableData {
-            return nil
-        }
-
-        defer {
-            readPosition += count
-            if readPosition > MAX_READ_POSITION {
-                data = Array(data[readPosition ..< data.count])
-                readPosition = 0
+        let data: [UInt8]? = dispatchQueue.sync(flags: .barrier) {
+            if count > self.readableData {
+                return nil
             }
+
+            defer {
+                readPosition += count
+                if readPosition > MAX_READ_POSITION {
+                    self.data = Array(self.data[readPosition ..< self.data.count])
+                    readPosition = 0
+                }
+            }
+            return [UInt8](self.data[readPosition ..< (readPosition + count)])
         }
 
-        let data = self.data[readPosition ..< (readPosition + count)]
-
-        return [UInt8](data)
+        return data
     }
 
     func write(_ incoming: [UInt8]) -> Void? {
-        data.append(contentsOf: incoming)
+        let currentWritePosition = self.writePosition
+        self.writePosition += incoming.count
+        
+        dispatchQueue.async(flags: .barrier) {
+            self.data.insert(contentsOf: incoming, at: currentWritePosition)
+        }
+        return ()
     }
 
     func readAll() -> Data {

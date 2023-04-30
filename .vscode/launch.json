@@ -1,0 +1,28 @@
+{
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"sourceLanguages": [
+				"swift"
+			],
+			"name": "Debug FFSSwiftProfiler",
+			"program": "${workspaceFolder:FFSwift.nosync}/.build/debug/FFSSwiftProfiler",
+			"args": [],
+			"cwd": "${workspaceFolder:FFSwift.nosync}",
+			"preLaunchTask": "swift: Build Debug FFSSwiftProfiler"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"sourceLanguages": [
+				"swift"
+			],
+			"name": "Release FFSSwiftProfiler",
+			"program": "${workspaceFolder:FFSwift.nosync}/.build/release/FFSSwiftProfiler",
+			"args": [],
+			"cwd": "${workspaceFolder:FFSwift.nosync}",
+			"preLaunchTask": "swift: Build Release FFSSwiftProfiler"
+		}
+	]
+}

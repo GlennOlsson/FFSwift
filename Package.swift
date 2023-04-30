@@ -37,5 +37,9 @@ let package = Package(
 			name: "FFSwiftTests",
 			dependencies: ["FFSwift"]
 		),
+		.executableTarget(
+			name: "FFSSwiftProfiler",
+			dependencies: ["FFSwift"]
+		),
 	]
 )
