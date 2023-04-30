@@ -25,27 +25,10 @@ func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> Data {
 	return bytes
 }
 
-class FFSOutStream: PNG.Bytestream.Source {
-	let data: [UInt8]
-
-	var index = 0
-
-	init(data: [UInt8]) {
-		self.data = data
-	}
-
-	func read(count: Int) -> [UInt8]? {
-		let endIndex = index + count
-		let bytes = data[index ..< endIndex]
-		index = endIndex
-		return Array(bytes)
-	}
-}
-
 public enum FFSDecoder {
 	public static func decode(_ data: Data, password: String) throws -> Data {
 		// Decode png data and decrypt with password
-		var stream = FFSOutStream(data: [UInt8](data))
+		var stream = FFSBinaryStream([UInt8](data))
 
 		let png = try! PNG.Data.Rectangular.decompress(stream: &stream)
 

@@ -82,7 +82,8 @@ public class StreamTests: XCTestCase {
 	}
 
 	func testWriteAndReadBig() {
-		let count = 10000
+		// Bigger than MAX_READ_POSITION
+		let count = 1_000_000
 
 		let data = Array(0..<count).map { UInt8($0 % 256) }
 
@@ -93,5 +94,69 @@ public class StreamTests: XCTestCase {
 		let read = stream.read(count: count)
 
 		XCTAssertEqual(read, data)
+	}
+
+	func testReadAllReturnsCorrectWithoutWrite() {
+		let stream = FFSBinaryStream([0, 1, 2, 3, 4])
+
+		let data = stream.readAll()
+
+		XCTAssertEqual(data, Data([0, 1, 2, 3, 4]))
+	}
+
+	func testReadAllReturnsCorrectWithWrite() {
+		let stream = FFSBinaryStream()
+
+		stream.write([0, 1, 2, 3, 4])
+
+		let data = stream.readAll()
+
+		XCTAssertEqual(data, Data([0, 1, 2, 3, 4]))
+	}
+
+	func testReadAllReturnsCorrectAfterRead() {
+		let stream = FFSBinaryStream([0, 1, 2, 3, 4])
+
+		_ = stream.read(count: 3)
+
+		let data = stream.readAll()
+
+		XCTAssertEqual(data, Data([3, 4]))
+	}
+
+	func testReadAfterReadAllReturnsNil() {
+		let stream = FFSBinaryStream([0, 1, 2, 3, 4])
+
+		_ = stream.readAll()
+
+		let data = stream.read(count: 1)
+
+		XCTAssertNil(data)
+	}
+
+	func testReadableDataIsCorrect() {
+		let stream = FFSBinaryStream([0, 1, 2, 3, 4])
+
+		XCTAssertEqual(stream.readableData, 5)
+
+		_ = stream.read(count: 3)
+
+		XCTAssertEqual(stream.readableData, 2)
+
+		_ = stream.read(count: 2)
+
+		XCTAssertEqual(stream.readableData, 0)
+
+		stream.write([0, 1, 2])
+
+		XCTAssertEqual(stream.readableData, 3)
+	}
+
+	func testReadableDataIs0AfterReadAll() {
+		let stream = FFSBinaryStream([0, 1, 2, 3, 4])
+
+		_ = stream.readAll()
+
+		XCTAssertEqual(stream.readableData, 0)
 	}
 }

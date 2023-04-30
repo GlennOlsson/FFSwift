@@ -9,12 +9,16 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
 
     var readPosition = 0
 
+    var readableData: Int {
+        return data.count - readPosition
+    }
+
     init(_ initialData: [UInt8] = []) {
         data = initialData
     }
 
     func read(count: Int) -> [UInt8]? {
-        if readPosition + count > data.count {
+        if count > readableData {
             return nil
         }
 
@@ -33,5 +37,9 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
 
     func write(_ incoming: [UInt8]) -> Void? {
         data.append(contentsOf: incoming)
+    }
+
+    func readAll() -> Data {
+        return Data(self.read(count: self.readableData) ?? [])
     }
 }

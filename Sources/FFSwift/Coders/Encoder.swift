@@ -8,18 +8,6 @@
 import Foundation
 import PNG
 
-class FFSSteam: PNG.Bytestream.Destination {
-	var data: [UInt8] = []
-
-	func write(_ buffer: [UInt8]) -> Void? {
-		return data.append(contentsOf: buffer)
-	}
-
-	func getData() -> Data {
-		return Data(data)
-	}
-}
-
 // Convert list of bytes to list of 16 bit pixels
 func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 	// Must be divisible by 8
@@ -81,9 +69,9 @@ public enum FFSEncoder {
 			layout: .init(format: .rgba16(palette: [], fill: nil))
 		)
 
-		var stream = FFSSteam()
+		var stream = FFSBinaryStream()
 		try? image.compress(stream: &stream, level: 0)
 
-		return stream.getData()
+		return stream.readAll()
 	}
 }
