@@ -1,6 +1,7 @@
 import Foundation
 import PNG
 
+/// Binary stream with asynchronous write and synchronous read. Thread safe.
 class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
     // At 1 Mb, copy the data to a new array and reset the read position
     private let MAX_READ_POSITION = 1_000_000
@@ -18,7 +19,7 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
 
     init(_ initialData: [UInt8] = []) {
         data = initialData
-        self.writePosition = initialData.count
+        writePosition = initialData.count
     }
 
     func read(count: Int) -> [UInt8]? {
@@ -30,7 +31,7 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
             defer {
                 readPosition += count
                 if readPosition > MAX_READ_POSITION {
-                    self.data = Array(self.data[readPosition ..< self.data.count])
+                    self.data = Array(self.data[self.readPosition ..< self.writePosition])
                     readPosition = 0
                 }
             }
@@ -41,9 +42,9 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
     }
 
     func write(_ incoming: [UInt8]) -> Void? {
-        let currentWritePosition = self.writePosition
-        self.writePosition += incoming.count
-        
+        let currentWritePosition = writePosition
+        writePosition += incoming.count
+
         dispatchQueue.async(flags: .barrier) {
             self.data.insert(contentsOf: incoming, at: currentWritePosition)
         }
@@ -51,6 +52,6 @@ class FFSBinaryStream: PNG.Bytestream.Source, PNG.Bytestream.Destination {
     }
 
     func readAll() -> Data {
-        return Data(self.read(count: self.readableData) ?? [])
+        return Data(read(count: readableData) ?? [])
     }
 }

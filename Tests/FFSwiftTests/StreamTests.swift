@@ -83,7 +83,7 @@ public class StreamTests: XCTestCase {
 
 	func testWriteAndReadBig() {
 		// Bigger than MAX_READ_POSITION
-		let count = 1_000_000
+		let count = 10_000_000
 
 		let data = Array(0..<count).map { UInt8($0 % 256) }
 
