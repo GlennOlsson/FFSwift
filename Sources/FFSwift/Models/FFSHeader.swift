@@ -50,4 +50,8 @@ public struct FFSHeader: BinaryStructure {
 	var dataRange: Range<Int> {
 		return count ..< count + Int(dataCount)
 	}
+
+	public static func ==(lhs: FFSHeader, rhs: FFSHeader) -> Bool {
+		return lhs.version == rhs.version && lhs.dataCount == rhs.dataCount
+	}
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// A protocol for structures that can be serialized and deserialized to and from binary data
-protocol BinaryStructure {
+protocol BinaryStructure: Equatable {
 	/// Magic string in the beginning of the data
 	static var magic: String { get }
 	
@@ -14,6 +14,9 @@ protocol BinaryStructure {
 
 	init(raw: Data) throws
 	var raw: Data { get }
+
+	// Equals overloading
+	static func == (lhs: Self, rhs: Self) -> Bool
 }
 
 extension BinaryStructure {
