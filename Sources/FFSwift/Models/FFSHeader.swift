@@ -4,11 +4,12 @@ public struct FFSHeader: BinaryStructure {
 	static var magic = "FFS"
 	/// Minimum number of bytes required for the header, hard coded as `count` is not
 	/// reachable in init
-	internal static var minCount = 8
+	internal static var minCount = FFSHeader.magic.count + 1 + 4
 
 	/// Number of bytes required for the header
 	var count: Int {
-		FFSHeader.magic.count + 1 + 4
+		// Not variable
+		FFSHeader.minCount
 	}
 
 	var version: UInt8

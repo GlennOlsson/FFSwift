@@ -29,7 +29,9 @@ extension BinaryStructure {
 		}
 		
 		// Assert that the magic can be decoded
-		guard let magic = String(data: raw[0 ..< Self.magic.count], encoding: .utf8) else {
+		// startIndex as data could be a slice
+		let magicEndIndex = raw.startIndex + Self.magic.count
+		guard let magic = String(data: raw[raw.startIndex ..< magicEndIndex], encoding: .utf8) else {
 			throw FFSBinaryStructureError.badMagic
 		}
 		
