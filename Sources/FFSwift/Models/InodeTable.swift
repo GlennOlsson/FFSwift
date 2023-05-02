@@ -40,9 +40,11 @@ class InodeTableEntry: BinaryStructure {
 	required init(raw: Data) throws {
 		try InodeTableEntry.verifyCountAndMagic(raw: raw)
 
-		var index = InodeTableEntry.magic.count
+		var index = raw.startIndex + InodeTableEntry.magic.count
 
-		version = raw[raw.startIndex + index]
+		getLogger().notice("index is \(index) and raw.count is \(raw.count), end index is \(raw.endIndex)")
+
+		version = raw[index]
 		index += 1
 
 		size = UInt64(data: raw[index ..< index + 8])
@@ -59,7 +61,7 @@ class InodeTableEntry: BinaryStructure {
 		index += 8
 
 		var posts: [Post] = []
-		while index < raw.count {
+		while index < raw.endIndex {
 			let postSize = Int(raw[index])
 			index += 1
 
@@ -102,8 +104,8 @@ public class InodeTable: BinaryStructure {
 	static var magic = "INOD"
 
 	var count: Int {
-		// Min count plus count of all entries
-		return InodeTable.minCount + entries.reduce(0) { $0 + $1.count }
+		// Min count plus count of all entries, plus count of all entries times two to account for 2 byte per entry
+		return InodeTable.minCount + entries.reduce(0) { $0 + $1.count } + entries.count * 2
 	}
 
 	// Magic + version
@@ -115,18 +117,27 @@ public class InodeTable: BinaryStructure {
 
 	let entries: [InodeTableEntry]
 
+	init(entries: [InodeTableEntry], version: UInt8 = 1) {
+		self.version = version
+		self.entries = entries
+	}
+
 	required init(raw: Data) throws {
 		try InodeTable.verifyCountAndMagic(raw: raw)
 
-		var index = InodeTable.magic.count
+		var index = raw.startIndex + InodeTable.magic.count
 
 		version = raw[index]
 		index += 1
 
 		var entries: [InodeTableEntry] = []
-		while index < raw.count {
-			let entry = try InodeTableEntry(raw: raw[index ..< raw.count])
+		while index < raw.endIndex {
+			let entrySize = Int(UInt16(data: raw[index ..< index + 2]))
+			index += 2
+
+			let entry = try InodeTableEntry(raw: raw[index ..< index + entrySize])
 			entries.append(entry)
+
 			index += entry.count
 		}
 		self.entries = entries
@@ -135,11 +146,14 @@ public class InodeTable: BinaryStructure {
 	var raw: Data {
 		var data = Data()
 
-		data.append(InodeTable.magic.utf8.first!)
+		data.append(InodeTable.magic.data(using: .utf8)!)
 		data.append(version.data)
 
 		for entry in entries {
-			data.append(entry.raw)
+			let rawEntry = entry.raw
+
+			data.append(UInt16(rawEntry.count).data)
+			data.append(rawEntry)
 		}
 
 		return data

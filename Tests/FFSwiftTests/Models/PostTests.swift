@@ -3,12 +3,12 @@ import Foundation
 import XCTest
 
 class PostTests: XCTestCase, BinaryStructureTester {
-	func mockedStructure() -> Post {
+	static func mockedStructure() -> Post {
 		return Post(owsID: 12345, id: "some-decodable-id", version: 1)
 	}
 
 	func testEncodeDecode() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 
@@ -18,19 +18,19 @@ class PostTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testCountIsCorrect() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertEqual(structure.count, structure.raw.count)
 	}
 
 	func testMinCountIsLessThanCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertLessThanOrEqual(T.minCount, structure.count)
 	}
 
 	func testThrowsForBadMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -42,7 +42,7 @@ class PostTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForWrongMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -54,7 +54,7 @@ class PostTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForBadDataCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 

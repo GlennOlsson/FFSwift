@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
-	func mockedStructure() -> InodeTableEntry {
+	static func mockedStructure() -> InodeTableEntry {
 		// Mocked inode table entry
 		return InodeTableEntry(
 			size: 12345,
@@ -19,7 +19,7 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testEncodeDecode() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 
@@ -29,19 +29,19 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testCountIsCorrect() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertEqual(structure.count, structure.raw.count)
 	}
 
 	func testMinCountIsLessThanCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertLessThanOrEqual(T.minCount, structure.count)
 	}
 
 	func testThrowsForBadMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -53,7 +53,7 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForWrongMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -65,7 +65,7 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForBadDataCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 

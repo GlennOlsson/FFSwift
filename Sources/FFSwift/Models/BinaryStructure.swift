@@ -22,7 +22,7 @@ protocol BinaryStructure: Equatable {
 extension BinaryStructure {
 	static func verifyCountAndMagic(raw: Data) throws {
 		// Make sure that there is enough data to decode the header
-		let rawCount = raw.count
+		let rawCount = raw.endIndex - raw.startIndex
 		
 		guard rawCount >= Self.minCount else {
 			throw FFSBinaryStructureError.badDataCount

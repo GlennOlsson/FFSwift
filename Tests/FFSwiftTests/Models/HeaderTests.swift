@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 class HeaderTests: XCTestCase, BinaryStructureTester {
-	func mockedStructure() -> FFSHeader {
+	static func mockedStructure() -> FFSHeader {
 		return FFSHeader(version: 1, dataCount: 3)
 	}
 
@@ -26,7 +26,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 
 	// MARK: - BinaryStructureTester
 	func testDecodingFFSHeaderWithWrongMagic() {
-		let header = self.mockedStructure()
+		let header = Self.mockedStructure()
 
 		var data = header.raw
 		data[0] = "A".data(using: .utf8)![0]
@@ -37,7 +37,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testDecodingFFSHeaderWithTooLittleData() {
-		let header = self.mockedStructure()
+		let header = Self.mockedStructure()
 
 		var data = header.raw
 		data.removeLast()
@@ -48,7 +48,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testDecodingFFSHeaderWithBadMagic() {
-		let header = self.mockedStructure()
+		let header = Self.mockedStructure()
 
 		var data = header.raw
 		data[0] = 0xFF
@@ -59,7 +59,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testEncodeDecode() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 
@@ -69,19 +69,19 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testCountIsCorrect() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertEqual(structure.count, structure.raw.count)
 	}
 
 	func testMinCountIsLessThanCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		XCTAssertLessThanOrEqual(T.minCount, structure.count)
 	}
 
 	func testThrowsForBadMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -93,7 +93,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForWrongMagic() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		var raw = structure.raw
 
@@ -105,7 +105,7 @@ class HeaderTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForBadDataCount() {
-		let structure = mockedStructure()
+		let structure = Self.mockedStructure()
 
 		let raw = structure.raw
 

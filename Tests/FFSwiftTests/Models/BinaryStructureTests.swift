@@ -5,5 +5,5 @@ import XCTest
 protocol BinaryStructureTester: XCTestCase {
 	associatedtype T: BinaryStructure
 
-	func mockedStructure() -> T
+	static func mockedStructure() -> T
 }
