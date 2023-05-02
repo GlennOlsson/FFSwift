@@ -29,9 +29,12 @@ public struct FFSHeader: BinaryStructure {
 	init(raw: Data) throws {
 		try FFSHeader.verifyCountAndMagic(raw: raw)
 
-		version = raw[3]
+		var index = raw.startIndex + FFSHeader.magic.count
 
-		let dataCount = UInt32(data: raw[4 ..< 8])
+		version = raw[index]
+		index += 1
+
+		let dataCount = UInt32(data: raw[index ..< index + 4])
 		self.dataCount = dataCount
 	}
 

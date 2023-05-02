@@ -11,6 +11,16 @@ class InodeTableTests: XCTestCase, BinaryStructureTester {
 		)
 	}
 
+	func testEncodeDecodeWithEmptyEntries() {
+		let structure = InodeTable(entries: [])
+
+		let raw = structure.raw
+
+		let decodedStructure = try! InodeTable(raw: raw)
+
+		XCTAssertEqual(structure, decodedStructure)
+	}
+
 	func testEncodeDecode() {
 		let structure = Self.mockedStructure()
 

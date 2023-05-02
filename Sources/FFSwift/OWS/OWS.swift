@@ -1,6 +1,7 @@
 import Foundation
 
 protocol OWS {
+	var id: OnlineWebService { get}
 	/**
 	 * Get a file from the server
 	 * - Parameter id: The id of the file

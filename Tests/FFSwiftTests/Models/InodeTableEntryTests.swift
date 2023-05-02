@@ -12,10 +12,47 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 			timeUpdated: UInt64(Date().timeIntervalSince1970),
 			timeAccessed: UInt64(Date().timeIntervalSince1970),
 			posts: [
-				Post(owsID: 12345, id: "some-decodable-id", version: 1),
-				Post(owsID: 54321, id: "some-decodable-id-2", version: 1),
+				PostTests.mockedStructure(),
+				PostTests.mockedStructure()
 			]
 		)
+	}
+
+	func testEncodeDecodeWithEmptyPosts() {
+		let structure = InodeTableEntry(
+			size: 12345,
+			isDirectory: false,
+			timeCreated: UInt64(Date().timeIntervalSince1970),
+			timeUpdated: UInt64(Date().timeIntervalSince1970),
+			timeAccessed: UInt64(Date().timeIntervalSince1970),
+			posts: []
+		)
+
+		let raw = structure.raw
+
+		let decodedStructure = try! InodeTableEntry(raw: raw)
+
+		XCTAssertEqual(structure, decodedStructure)
+	}
+
+	func testEncodeDecodeDirectory() {
+		let structure = InodeTableEntry(
+			size: 12345,
+			isDirectory: true,
+			timeCreated: UInt64(Date().timeIntervalSince1970),
+			timeUpdated: UInt64(Date().timeIntervalSince1970),
+			timeAccessed: UInt64(Date().timeIntervalSince1970),
+			posts: [
+				PostTests.mockedStructure(),
+				PostTests.mockedStructure()
+			]
+		)
+
+		let raw = structure.raw
+
+		let decodedStructure = try! InodeTableEntry(raw: raw)
+
+		XCTAssertEqual(structure, decodedStructure)
 	}
 
 	func testEncodeDecode() {

@@ -12,7 +12,10 @@ private let uploadURL = URL(string: "https://api.flickr.com/services/upload")!
 private let apiURL = URL(string: "https://api.flickr.com/services/rest")!
 // private let uploadURL = URL(string: "http://127.0.0.1:8080")!
 
+let logger = getLogger(category: "flickr")
 public class FlickrClient: OWS {
+	var id = OnlineWebService.flickr
+
 	let consumerKey: String
 	let consumerSecret: String
 	let accessToken: String
@@ -41,7 +44,7 @@ public class FlickrClient: OWS {
 				case let .success(data):
 					completion.resume(returning: data)
 				case let .failure(error):
-					print("ERROR WITH UPLOAD: \(error)")
+					logger.error("ERROR WITH UPLOAD: \(error)")
 					completion.resume(returning: nil)
 				}
 			}
@@ -55,7 +58,7 @@ public class FlickrClient: OWS {
 		if let responseData = response, let photoID = parsePhotoId(from: responseData) {
 			return photoID
 		} else {
-			print("COULD NOT PARSE PHOTO ID FROM \(String(data: response!, encoding: .utf8)!)")
+			logger.error("COULD NOT PARSE PHOTO ID FROM \(String(data: response!, encoding: .utf8)!)")
 			return nil
 		}
 	}
@@ -70,12 +73,11 @@ public class FlickrClient: OWS {
 
 		await withCheckedContinuation { completion in
 			AF.request(apiURL, method: .get, parameters: parameters.allParameters).response { response in
-				// print resp data as string
 				switch response.result {
-				case let .success(data):
-					print("Successfully deleted file")
+				case .success(_):
+					logger.info("Successfully deleted file")
 				case let .failure(error):
-					print("ERROR WITH UPLOAD: \(error)")
+					logger.error("ERROR WITH UPLOAD: \(error)")
 				}
 
 				completion.resume()
@@ -91,8 +93,6 @@ public class FlickrClient: OWS {
 	public func getFile(id: String) async -> Data? {
 		let url = await getImageURL(id: id)
 
-		print("Got original image url: \(url ?? "nil")")
-
 		// Get data from url
 		if let url = url {
 			let data = await withCheckedContinuation { completion in
@@ -101,7 +101,7 @@ public class FlickrClient: OWS {
 					case let .success(data):
 						completion.resume(returning: data)
 					case let .failure(error):
-						print("Error with getting file data from url: \(error)")
+						logger.error("Error with getting file data from url: \(error)")
 						completion.resume(returning: nil)
 					}
 				}
@@ -135,8 +135,6 @@ public class FlickrClient: OWS {
 		}
 
 		let url = uploadURL
-
-		print("URL: \(url.absoluteString)")
 
 		let parameters = oauthGenerator.generateParameters(
 			url: url, httpMethod: "POST", params: extraParams
@@ -186,7 +184,6 @@ public class FlickrClient: OWS {
 					let decoder = JSONDecoder()
 					var url: String? = nil
 					if let response = try? decoder.decode(FlickrGetSizesResponse.self, from: data!) {
-						print("Got sizes from flickr, getting original")
 						response.sizes.size.forEach { size in
 							if size.label == "Original" {
 								url = size.source
@@ -194,11 +191,11 @@ public class FlickrClient: OWS {
 						}
 
 					} else {
-						print("Could not parse getSizes response")
+						logger.warning("Could not parse getSizes response")
 					}
 					continuation.resume(returning: url)
 				case let .failure(error):
-					print("Error with getSizes response: \(error)")
+					logger.error("Error with getSizes response: \(error)")
 					continuation.resume(returning: nil)
 				}
 			}
@@ -237,14 +234,13 @@ public class FlickrClient: OWS {
 					let decoder = JSONDecoder()
 					var ids: [String] = []
 					if let response = try? decoder.decode(FlickrGetRecentResponse.self, from: data!) {
-						print("Got recent photos from flickr, adding original urls")
 						ids = response.photos.photo.map { $0.id }
 					} else {
-						print("Could not parse getRecent response: \(String(data: data!, encoding: .utf8)!)")
+						logger.warning("Could not parse getRecent response: \(String(data: data!, encoding: .utf8)!)")
 					}
 					continuation.resume(returning: ids)
 				case let .failure(error):
-					print("Error with getRecent response: \(error)")
+					logger.error("Error with getRecent response: \(error)")
 					continuation.resume(returning: [])
 				}
 			}

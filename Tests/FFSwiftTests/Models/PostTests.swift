@@ -4,7 +4,21 @@ import XCTest
 
 class PostTests: XCTestCase, BinaryStructureTester {
 	static func mockedStructure() -> Post {
-		return Post(owsID: 12345, id: "some-decodable-id", version: 1)
+		return Post(ows: .flickr, id: "some-decodable-id", version: 1)
+	}
+
+	func testThrowsWhenBadOWS() {
+		let structure = Self.mockedStructure()
+
+		var raw = structure.raw
+
+		let owsIndex = raw.startIndex + Post.magic.count + 1
+		raw[owsIndex] = .max // Non-existing OWS
+		raw[owsIndex + 1] = .max
+
+		XCTAssertThrowsError(try Post(raw: raw)) { error in
+			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badOWS)
+		}
 	}
 
 	func testEncodeDecode() {
@@ -15,6 +29,16 @@ class PostTests: XCTestCase, BinaryStructureTester {
 		let decodedStructure = try! T(raw: raw)
 
 		XCTAssertEqual(structure, decodedStructure)
+	}	
+
+	func testEncodeDecodeWithEmptyID() {
+		let structure = Post(ows: .flickr, id: "")
+
+		let raw = structure.raw
+
+		let decodedStructure = try! T(raw: raw)
+
+		XCTAssertEqual("", decodedStructure.id)
 	}
 
 	func testCountIsCorrect() {
