@@ -5,14 +5,14 @@ import XCTest
 class InodeTableTests: XCTestCase, BinaryStructureTester {
 	static func mockedStructure() -> InodeTable {
 		return InodeTable(entries: [
-				InodeTableEntryTests.mockedStructure(),
-				InodeTableEntryTests.mockedStructure(),
+				0: InodeTableEntryTests.mockedStructure(),
+				1: InodeTableEntryTests.mockedStructure(),
 			]
 		)
 	}
 
 	func testEncodeDecodeWithEmptyEntries() {
-		let structure = InodeTable(entries: [])
+		let structure = InodeTable(entries: [:])
 
 		let raw = structure.raw
 

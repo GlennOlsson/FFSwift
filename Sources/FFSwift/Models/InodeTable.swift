@@ -108,15 +108,17 @@ class InodeTableEntry: BinaryStructure {
 	}
 
 	public static func == (a: InodeTableEntry, b: InodeTableEntry) -> Bool {
-		a.version == b.version && 
-		a.metadata.size == b.metadata.size && 
-		a.metadata.isDirectory == b.metadata.isDirectory && 
-		a.metadata.timeCreated == b.metadata.timeCreated && 
-		a.metadata.timeUpdated == b.metadata.timeUpdated && 
-		a.metadata.timeAccessed == b.metadata.timeAccessed && 
-		a.posts == b.posts
+		a.version == b.version &&
+			a.metadata.size == b.metadata.size &&
+			a.metadata.isDirectory == b.metadata.isDirectory &&
+			a.metadata.timeCreated == b.metadata.timeCreated &&
+			a.metadata.timeUpdated == b.metadata.timeUpdated &&
+			a.metadata.timeAccessed == b.metadata.timeAccessed &&
+			a.posts == b.posts
 	}
 }
+
+typealias Inode = UInt64
 
 public class InodeTable: BinaryStructure {
 	// MARK: BinaryStructure attributes
@@ -124,8 +126,9 @@ public class InodeTable: BinaryStructure {
 	static var magic = "INOD"
 
 	var count: Int {
-		// Min count plus count of all entries, plus count of all entries times two to account for 2 byte per entry
-		return InodeTable.minCount + entries.reduce(0) { $0 + $1.count } + entries.count * 2
+		// Min count plus count of all entries, plus count of all entries times 2 and 8 to account
+		// for 2 byte for size of entry and 8 bytes for inode
+		return InodeTable.minCount + entries.values.reduce(0) { $0 + $1.count } + entries.count * (2 + 8)
 	}
 
 	// Magic + version
@@ -135,9 +138,9 @@ public class InodeTable: BinaryStructure {
 
 	// MARK: InodeTable attributes
 
-	let entries: [InodeTableEntry]
+	let entries: [Inode: InodeTableEntry]
 
-	init(entries: [InodeTableEntry], version: UInt8 = 1) {
+	init(entries: [Inode: InodeTableEntry], version: UInt8 = 1) {
 		self.version = version
 		self.entries = entries
 	}
@@ -150,13 +153,16 @@ public class InodeTable: BinaryStructure {
 		version = raw[index]
 		index += 1
 
-		var entries: [InodeTableEntry] = []
+		var entries: [Inode: InodeTableEntry] = [:]
 		while index < raw.endIndex {
+			let inode = UInt64(data: raw[index ..< index + 8])
+			index += 8
+
 			let entrySize = Int(UInt16(data: raw[index ..< index + 2]))
 			index += 2
 
 			let entry = try InodeTableEntry(raw: raw[index ..< index + entrySize])
-			entries.append(entry)
+			entries[inode] = entry
 
 			index += entry.count
 		}
@@ -169,7 +175,9 @@ public class InodeTable: BinaryStructure {
 		data.append(InodeTable.magic.data(using: .utf8)!)
 		data.append(version.data)
 
-		for entry in entries {
+		for (inode, entry) in entries {
+			data.append(inode.data)
+
 			let rawEntry = entry.raw
 
 			data.append(UInt16(rawEntry.count).data)

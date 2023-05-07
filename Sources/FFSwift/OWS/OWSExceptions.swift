@@ -1,5 +1,5 @@
 
-enum OWSError: Error {
+enum OWSError: Error, Equatable {
 	case unknownOWS
 	case unsupportedOWS
 	case notAuthenticated

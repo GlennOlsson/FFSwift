@@ -25,20 +25,20 @@ final class FlickrTest: XCTestCase {
 		return FlickrClient(consumerKey: key, consumerSecret: secret, accessToken: token, accessSecret: tokenSecret)
 	}
 
-	func uploadTest(client: FlickrClient, data: Data) async -> String? {
-		return await client.uploadFile(data: data)
+	func uploadTest(client: FlickrClient, data: Data) async throws -> String? {
+		return try await client.upload(data: data)
 	}
 
-	func getFileByIDTest(client: FlickrClient, id: String) async -> Data? {
-		return await client.getFile(id: id)
+	func getFileByIDTest(client: FlickrClient, id: String) async throws -> Data? {
+		return try await client.get(with: id)
 	}
 
-	func getRecentFilesTest(client: FlickrClient, n: Int) async -> [String]? {
-		return await client.getRecentFiles(n: n)
+	func getRecentFilesTest(client: FlickrClient, n: Int) async throws -> [String]? {
+		return try await client.getRecent(n: n)
 	}
 
 	func deleteFileTest(client: FlickrClient, id: String) async {
-		await client.deleteFile(id: id)
+		await client.delete(id: id)
 	}
 
 	func testFlickrIntegration() async throws {
@@ -48,7 +48,7 @@ final class FlickrTest: XCTestCase {
 
 		let data = try! Data(contentsOf: URL(fileURLWithPath: testImagePath))
 
-		let photoID = await uploadTest(client: client, data: data)
+		let photoID = try await uploadTest(client: client, data: data)
 
 		guard let id = photoID else {
 			XCTAssertNotNil(photoID)
@@ -56,13 +56,13 @@ final class FlickrTest: XCTestCase {
 		}
 
 		// Test get file
-		let recievedFileData = await getFileByIDTest(client: client, id: id)
+		let recievedFileData = try await getFileByIDTest(client: client, id: id)
 		XCTAssertNotNil(recievedFileData)
 
 		XCTAssertEqual(data, recievedFileData)
 
 		// Test get recent files
-		let recentFiles = await getRecentFilesTest(client: client, n: 1)
+		let recentFiles = try await getRecentFilesTest(client: client, n: 1)
 		XCTAssertNotNil(recentFiles)
 		XCTAssertEqual(recentFiles!.count, 1)
 		XCTAssertEqual(recentFiles![0], id)
@@ -71,7 +71,7 @@ final class FlickrTest: XCTestCase {
 		await deleteFileTest(client: client, id: id)
 
 		// Test get file after delete
-		let recievedFileDataAfterDelete = await getFileByIDTest(client: client, id: id)
+		let recievedFileDataAfterDelete = try await getFileByIDTest(client: client, id: id)
 		XCTAssertNil(recievedFileDataAfterDelete)
 	}
 }
