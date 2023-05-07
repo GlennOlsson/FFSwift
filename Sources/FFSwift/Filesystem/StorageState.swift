@@ -25,6 +25,22 @@ class StorageState {
 		return fileData
 	}
 
+	func getDirectory(with inode: Inode) async throws -> Directory {
+		guard let entry = inodeTable.entries[inode] else {
+			throw FilesystemException.noFileWithInode(inode)
+		}
+
+		if !entry.metadata.isDirectory {
+			throw FilesystemException.isFile
+		}
+
+		let imageData = try await getData(from: entry)
+
+		let directoryData = try FFSDecoder.decode(imageData, password: password)
+
+		return try Directory.init(raw: directoryData)
+	}
+
 	internal func getData(from entry: InodeTableEntry) async throws -> Data {
 		let data = try await concatAsyncData(items: entry.posts) { post async throws in
 			let client = try self.getOWS(for: post.ows)
