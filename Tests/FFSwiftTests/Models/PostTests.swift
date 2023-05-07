@@ -17,7 +17,7 @@ class PostTests: XCTestCase, BinaryStructureTester {
 		raw[owsIndex + 1] = .max
 
 		XCTAssertThrowsError(try Post(raw: raw)) { error in
-			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badOWS)
+			XCTAssertEqual(error as! OWSError, OWSError.unknownOWS)
 		}
 	}
 

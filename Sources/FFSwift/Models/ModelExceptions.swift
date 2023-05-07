@@ -5,5 +5,4 @@ public enum FFSBinaryStructureError: Error {
 	case badMagic
 	case badVersion
 	case badStructure
-	case badOWS
 }

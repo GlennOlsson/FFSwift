@@ -13,9 +13,7 @@ private let apiURL = URL(string: "https://api.flickr.com/services/rest")!
 // private let uploadURL = URL(string: "http://127.0.0.1:8080")!
 
 let logger = getLogger(category: "flickr")
-public class FlickrClient: OWS {
-	var id = OnlineWebService.flickr
-
+public class FlickrClient: OWSClient {
 	let consumerKey: String
 	let consumerSecret: String
 	let accessToken: String
@@ -74,7 +72,7 @@ public class FlickrClient: OWS {
 		await withCheckedContinuation { completion in
 			AF.request(apiURL, method: .get, parameters: parameters.allParameters).response { response in
 				switch response.result {
-				case .success(_):
+				case .success:
 					logger.info("Successfully deleted file")
 				case let .failure(error):
 					logger.error("ERROR WITH UPLOAD: \(error)")

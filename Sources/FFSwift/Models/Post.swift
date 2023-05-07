@@ -38,10 +38,7 @@ struct Post: BinaryStructure {
 		index += 1
 
 		let owsID = UInt16(data: raw[index ..< index + 2])
-		guard let ows = OnlineWebService(rawValue: owsID) else {
-			throw FFSBinaryStructureError.badOWS
-		}
-		self.ows = ows
+		self.ows = try OnlineWebService.from(owsID)
 		index += 2
 
 		id = String(data: raw[index ..< raw.endIndex], encoding: .utf8)!
