@@ -2,29 +2,29 @@ import Foundation
 
 protocol OWSClient {
 	/**
-	 * Get a file from the server
-	 * - Parameter id: The id of the file
-	 * - Returns: The file data
+	 * Get the data of a post from the server
+	 * - Parameter id: The id of the post
+	 * - Returns: The post data
 	 */
-	func getFile(id: String) async -> Data?
+	func get(with postId: String) async throws -> Data
 
 	/**
-	 * Upload a file to the server
-	 * - Parameter data: The file data
+	 * Upload data to the server
+	 * - Parameter data: The data to upload
 	 * - Returns: The id of the file
 	 */
-	func uploadFile(data: Data) async -> String?
+	func upload(data: Data) async throws -> String
 
 	/**
-	 * Get the most recent files
-	 * - Parameter n: The number of files to get
-	 * - Returns: The ids of the files
+	 * Get the most recent posts
+	 * - Parameter n: The number of posts to get
+	 * - Returns: The ids of the posts
 	 */
-	func getRecentFiles(n: Int) async -> [String]?
+	func getRecent(n: Int) async throws -> [String]
 
 	/**
-	 * Delete a file from the server
-	 * - Parameter id: The id of the file
+	 * Delete a post from the server
+	 * - Parameter id: The id of the post
 	 */
-	func deleteFile(id: String) async
+	func delete(id: String) async
 }

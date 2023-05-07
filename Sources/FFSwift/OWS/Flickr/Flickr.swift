@@ -35,7 +35,37 @@ public class FlickrClient: OWSClient {
 		)
 	}
 
-	public func uploadFile(data: Data) async -> String? {
+	public func get(with postId: String) async throws -> Data {
+		let url = await getImageURL(id: postId)
+
+		// Get data from url
+		if let url = url {
+			let optionalData = await withCheckedContinuation { completion in
+				AF.request(url).response { response in
+					switch response.result {
+					case let .success(data):
+						completion.resume(returning: data)
+					case let .failure(error):
+						logger.error("Error with getting file data from url: \(error)")
+						completion.resume(returning: nil)
+					}
+				}
+			}
+			guard let data = optionalData else {
+				throw OWSError.noPostWithID(postId)
+			}
+			return data
+		} else {
+			throw OWSError.noPostWithID(postId)
+		}
+	}
+
+	public func getRecent(n: Int) async throws -> [String] {
+		// Get recent photos from Flickr
+		return await getMostRecentImageIDs(n: n)
+	}
+
+	public func upload(data: Data) async throws -> String {
 		let response = await withCheckedContinuation { completion in
 			self.upload(data: data).response { response in
 				switch response.result {
@@ -48,20 +78,15 @@ public class FlickrClient: OWSClient {
 			}
 		}
 
-		// write raw response to file
-		let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-			.appendingPathComponent("uploadResponse.json")
-		try? response?.write(to: fileURL)
-
 		if let responseData = response, let photoID = parsePhotoId(from: responseData) {
 			return photoID
 		} else {
 			logger.error("COULD NOT PARSE PHOTO ID FROM \(String(data: response!, encoding: .utf8)!)")
-			return nil
+			throw OWSError.couldNotUpload
 		}
 	}
 
-	public func deleteFile(id: String) async {
+	public func delete(id: String) async {
 		// Remove photo from Flickr
 		let method = "flickr.photos.delete"
 		let oauthGenerator = getOauthGenerator()
@@ -80,33 +105,6 @@ public class FlickrClient: OWSClient {
 
 				completion.resume()
 			}
-		}
-	}
-
-	public func getRecentFiles(n: Int) async -> [String]? {
-		// Get recent photos from Flickr
-		return await getMostRecentImageIDs(n: n)
-	}
-
-	public func getFile(id: String) async -> Data? {
-		let url = await getImageURL(id: id)
-
-		// Get data from url
-		if let url = url {
-			let data = await withCheckedContinuation { completion in
-				AF.request(url).response { response in
-					switch response.result {
-					case let .success(data):
-						completion.resume(returning: data)
-					case let .failure(error):
-						logger.error("Error with getting file data from url: \(error)")
-						completion.resume(returning: nil)
-					}
-				}
-			}
-			return data
-		} else {
-			return nil
 		}
 	}
 
