@@ -71,14 +71,24 @@ public class CoderTests: XCTestCase {
 	}
 
 	func testBadFFSDataThrow() {
-		let url = URL(fileURLWithPath: "Tests/resources/test.png")
-		guard let data = try? Data(contentsOf: url) else {
-			XCTFail("Could not load image")
-			return
-		}
+		let data = Data([0x00, 0x01, 0x02, 0x03])
 
-		XCTAssertThrowsError(try FFSDecoder.decode([data], password: "wrongPassword")) { error in
+		let encodedData = try! FFSEncoder.encode(data, password: "password", limit: .max)
+
+		XCTAssertThrowsError(try FFSDecoder.decode(encodedData, password: "wrongPassword")) { error in
 			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.decryptionError)
 		}
+	}
+
+	func testSplitEncodedDataCanBeDecoded() {
+		let data = Data(repeating: 0x00, count: 100)
+
+		let encodedData = try! FFSEncoder.encode(data, password: "password", limit: 10)
+
+		XCTAssertGreaterThanOrEqual(encodedData.count, 2)
+
+		let decodedData = try! FFSDecoder.decode(encodedData, password: "password")
+
+		XCTAssertEqual(decodedData, data)
 	}
 }

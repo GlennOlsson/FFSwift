@@ -36,17 +36,27 @@ public enum FFSDecoder {
 
 		let bytes = pixelsToBytes(pixels)
 
-		return bytes
+		// Take first 8 bytes of data
+		var index = bytes.startIndex
+		let countData = bytes[index ..< index + 8]
+		index += 8
+
+		let relevantDataCount = UInt64(data: countData)
+
+		return bytes[index ..< index + Int(relevantDataCount)]
 	}
 
 	/// Decode data from FFS images
 	public static func decode(_ imageData: [Data], password: String) throws -> Data {
 		var encryptedFFSData = Data()
 
+		getLogger().notice("Decoding \(imageData.count) images")
 		for img in imageData {
-			let ffsData = try decodeImage(with: img)
-			encryptedFFSData.append(ffsData)
+			let decodedImageData = try decodeImage(with: img)
+			encryptedFFSData.append(decodedImageData)
 		}
+
+		getLogger().notice("Decoding FFS data: \(encryptedFFSData.hexadecimal, privacy: .public))")
 
 		let (decodedData, header) = try FFSImage.decodeFFSData(ffsData: encryptedFFSData, password: password)
 

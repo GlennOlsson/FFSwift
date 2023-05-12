@@ -17,7 +17,7 @@ func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 
 	var doubleBytes: [UInt16] = []
 	// For each pair of bytes in the data, combine them into a 16 bit value
-	for i in stride(from: 0, to: bytes.count, by: 2) {
+	for i in stride(from: bytes.startIndex, to: bytes.endIndex, by: 2) {
 		let firstByte = UInt16(bytes[i])
 		let secondByte = UInt16(bytes[i + 1])
 		let doubleByte = (firstByte << 8) | secondByte
@@ -39,7 +39,8 @@ func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 
 public enum FFSEncoder {
 	internal static func encodeImage(with data: Data) throws -> Data {
-		let requiredBytes = data.count
+		// Data plus 8 bytes for size of relevant data
+		let requiredBytes = data.count + 8
 
 		// Let pixels be the number of bytes divided by 8, rounded up
 		// 8 because 2 bytes per component, and 4 components (with alpha)
@@ -54,7 +55,7 @@ public enum FFSEncoder {
 		let totalBytes = totalPixels * 8
 
 		// Add random data to fill the number of bytes
-		var allData = data
+		var allData = UInt64(data.count).data + data
 		while allData.count < totalBytes {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}
@@ -73,9 +74,11 @@ public enum FFSEncoder {
 		return stream.readAll()
 	}
 
-	/// Encode data into FFS images
+	/// Encode data into FFS images. Limit says how much FFS data can be in each image
 	public static func encode(_ data: Data, password: String, limit: Int) throws -> [Data] {
 		let ffsData = try FFSImage.createFFSData(data: data, password: password)
+
+		getLogger().notice("FFS Data \(ffsData.hexadecimal, privacy: .public)")
 
 		// Create an image for each `limit` bytes
 		var lowIndex = 0
@@ -83,10 +86,10 @@ public enum FFSEncoder {
 
 		var images: [Data] = []
 		while highIndex < ffsData.count {
-			let imageData = ffsData[lowIndex ..< highIndex]
-			let image = try encodeImage(with: imageData)
+			let ffsDataForImage = ffsData[lowIndex ..< highIndex]
+			let imageData = try encodeImage(with: ffsDataForImage)
 
-			images.append(image)
+			images.append(imageData)
 
 			lowIndex += limit
 			highIndex += limit

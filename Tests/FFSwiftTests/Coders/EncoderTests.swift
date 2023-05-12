@@ -30,4 +30,12 @@ public class EncoderTests: XCTestCase {
 			15
 		].forEach(asserter)
 	}
+
+	func testEncodeSplitsDataForLimit() {
+		let data = Data(repeating: 0x00, count: 6)
+
+		let encodedData = try! FFSEncoder.encode(data, password: "password", limit: 10)
+
+		XCTAssertEqual(encodedData.count, 2)
+	}
 }
