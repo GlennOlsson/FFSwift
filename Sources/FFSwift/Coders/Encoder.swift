@@ -38,7 +38,9 @@ func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 }
 
 public enum FFSEncoder {
-	internal static func encodeImage(with data: Data) throws -> Data {
+	internal static func createImageData(from data: Data)
+		-> (data: Data, width: Int, height: Int)
+	{
 		// Data plus 8 bytes for size of relevant data
 		let requiredBytes = data.count + 8
 
@@ -46,9 +48,9 @@ public enum FFSEncoder {
 		// 8 because 2 bytes per component, and 4 components (with alpha)
 		let requiredPixels = ceil(Double(requiredBytes) / 8.0)
 
-		// Let width be the square root of the number of pixels, rounded up
-		let width = Int(sqrt(Double(requiredPixels)).rounded(.up))
-		let height = Int((requiredPixels / Double(width)).rounded(.up))
+		// Let height be the square root of the number of pixels, rounded up
+		let height: Int = Int(sqrt(Double(requiredPixels)).rounded(.up))
+		let width = Int((requiredPixels / Double(height)).rounded(.up))
 
 		// Total pixels with fillers
 		let totalPixels = width * height
@@ -60,7 +62,13 @@ public enum FFSEncoder {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}
 
-		let pixels = try bytesToPixels(allData)
+		return (data: allData, width: width, height: height)
+	}
+
+	internal static func encodeImage(with data: Data) throws -> Data {
+		let (imageData, width, height) = createImageData(from: data)
+
+		let pixels = try bytesToPixels(imageData)
 
 		let image = PNG.Data.Rectangular(
 			packing: pixels,

@@ -40,4 +40,46 @@ public class EncoderTests: XCTestCase {
 		// should be at least 2 when the limit is smaller than the data count
 		XCTAssertGreaterThanOrEqual(encodedData.count, 2)
 	}
+
+	func testCreateImageDataReturnsSameDataForSquarableData() {
+		// If data count + size of data (with 8 bytes) require a square number of pixels, 
+		// then the image will be square, i.e. no extra bytes are needed
+
+		// 2 bytes per component, 4 components per pixel == 8 bytes per pixel
+		// 4x4 image == 16 pixels == 128 bytes. Although, 8 bytes are needed for the data size
+		// so only pass 120 bytes
+
+		let data = Data(1...120)
+		
+		let (imageData, w, h) = FFSEncoder.createImageData(from: data)
+
+		XCTAssertEqual(imageData.count, 128)
+		XCTAssertEqual(w, 4)
+		XCTAssertEqual(h, 4)
+
+		// Check that the data is the same
+		XCTAssertEqual(imageData[8...], data)
+
+		// Check that the data size is correct
+		XCTAssertEqual(UInt64(120).data, imageData[0..<8])
+	}
+
+	func testCreateImageDataReturnsExtraDataForNonSquarableData() {
+		// Similar to above, but for 121 bytes so one extra row is needed
+
+		let data = Data(1...121)
+		
+		let (imageData, w, h) = FFSEncoder.createImageData(from: data)
+
+		// 121 + 8 bytes for data size + (4 * 8 - 1) bytes for extra row - 1 byte
+		XCTAssertEqual(imageData.count, 160)
+		XCTAssertEqual(w, 4)
+		XCTAssertEqual(h, 5)
+
+		// Check that the data is the same
+		XCTAssertEqual(imageData[8..<129], data)
+
+		// Check that the data size is correct
+		XCTAssertEqual(UInt64(121).data, imageData[0..<8])
+	}
 }
