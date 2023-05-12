@@ -19,9 +19,9 @@ class FilesystemUtilsTests: XCTestCase {
 			}
 		}
 
-		let data = try! await concatAsyncData(items: [0, 1], using: f)
+		let data = try! await loadAsyncList(items: [0, 1], using: f)
 
-		XCTAssertEqual(data, UInt8(0).data + UInt8(1).data)
+		XCTAssertEqual(data, [UInt8(0).data, UInt8(1).data])
 	}
 
 	func testThrowingFunctionThrows() async {
@@ -33,7 +33,7 @@ class FilesystemUtilsTests: XCTestCase {
 		let expectation = XCTestExpectation(description: "Task group throws")
 
 		do {
-			_ = try await concatAsyncData(items: [0, 1], using: f)
+			_ = try await loadAsyncList(items: [0, 1], using: f)
 		} catch {
 			XCTAssertEqual(error as! FilesystemException, exception)
 			expectation.fulfill()
@@ -41,10 +41,12 @@ class FilesystemUtilsTests: XCTestCase {
 	}
 
 	func testConcatingMany() async {
-		let items = Array(0..<1000)
-		
-		let data = try! await concatAsyncData(items: items) { UInt16($0).data }
+		let items = Array(0 ..< 1000)
 
-		XCTAssertEqual(data, items.reduce(Data()) { $0 + UInt16($1).data })
+		let data = try! await loadAsyncList(items: items) { UInt16($0).data }
+
+		let expected = items.map { UInt16($0).data }
+
+		XCTAssertEqual(data, expected)
 	}
 }

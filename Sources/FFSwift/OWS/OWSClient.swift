@@ -1,6 +1,9 @@
 import Foundation
 
 protocol OWSClient {
+
+	var sizeLimit: Int { get }
+
 	/**
 	 * Get the data of a post from the server
 	 * - Parameter id: The id of the post

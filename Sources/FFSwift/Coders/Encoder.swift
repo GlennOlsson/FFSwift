@@ -38,10 +38,8 @@ func bytesToPixels(_ bytes: Data) throws -> [PNG.RGBA<UInt16>] {
 }
 
 public enum FFSEncoder {
-	public static func encode(_ data: Data, password: String) throws -> Data {
-		let ffsData = try FFSImage.createFFSImageData(data: data, password: password)
-
-		let requiredBytes = ffsData.count
+	internal static func encodeImage(with data: Data) throws -> Data {
+		let requiredBytes = data.count
 
 		// Let pixels be the number of bytes divided by 8, rounded up
 		// 8 because 2 bytes per component, and 4 components (with alpha)
@@ -56,7 +54,7 @@ public enum FFSEncoder {
 		let totalBytes = totalPixels * 8
 
 		// Add random data to fill the number of bytes
-		var allData = ffsData
+		var allData = data
 		while allData.count < totalBytes {
 			allData.append(UInt8.random(in: 0 ... 255))
 		}
@@ -73,5 +71,33 @@ public enum FFSEncoder {
 		try? image.compress(stream: &stream, level: 0)
 
 		return stream.readAll()
+	}
+
+	/// Encode data into FFS images
+	public static func encode(_ data: Data, password: String, limit: Int) throws -> [Data] {
+		let ffsData = try FFSImage.createFFSData(data: data, password: password)
+
+		// Create an image for each `limit` bytes
+		var lowIndex = 0
+		var highIndex = limit
+
+		var images: [Data] = []
+		while highIndex < ffsData.count {
+			let imageData = ffsData[lowIndex ..< highIndex]
+			let image = try encodeImage(with: imageData)
+
+			images.append(image)
+
+			lowIndex += limit
+			highIndex += limit
+		}
+
+		// Add the last image
+		let imageData = ffsData[lowIndex ..< ffsData.count]
+		let image = try encodeImage(with: imageData)
+
+		images.append(image)
+
+		return images
 	}
 }

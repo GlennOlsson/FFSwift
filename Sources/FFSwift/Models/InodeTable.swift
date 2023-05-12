@@ -123,7 +123,7 @@ typealias Inode = UInt64
 public class InodeTable: BinaryStructure {
 	// MARK: BinaryStructure attributes
 
-	static var magic = "INOD"
+	internal static var magic = "INOD"
 
 	var count: Int {
 		// Min count plus count of all entries, plus count of all entries times 2 and 8 to account
@@ -132,13 +132,13 @@ public class InodeTable: BinaryStructure {
 	}
 
 	// Magic + version
-	static var minCount = InodeTable.magic.count + 1
+	internal static var minCount = InodeTable.magic.count + 1
 
-	var version: UInt8
+	internal var version: UInt8
 
 	// MARK: InodeTable attributes
 
-	let entries: [Inode: InodeTableEntry]
+	internal var entries: [Inode: InodeTableEntry]
 
 	init(entries: [Inode: InodeTableEntry], version: UInt8 = 1) {
 		self.version = version
@@ -185,6 +185,26 @@ public class InodeTable: BinaryStructure {
 		}
 
 		return data
+	}
+
+	internal func getNextInode() -> Inode {
+		// Append one to the max inode. Even if we would create a new inode every microsecond, the
+		// inode will not overflow until after 584,942,417 years
+		let maxInode = entries.keys.max()
+		// First inode should be 0
+		return maxInode?.advanced(by: 1) ?? 0
+	}
+
+	func add(entry: InodeTableEntry) -> Inode {
+		let inode = getNextInode()
+
+		entries[inode] = entry
+
+		return inode
+	}
+
+	func get(with inode: Inode) -> InodeTableEntry? {
+		entries[inode]
 	}
 
 	public static func == (a: InodeTable, b: InodeTable) -> Bool {

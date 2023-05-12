@@ -26,7 +26,7 @@ func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> Data {
 }
 
 public enum FFSDecoder {
-	public static func decode(_ data: Data, password: String) throws -> Data {
+	internal static func decodeImage(with data: Data) throws -> Data {
 		// Decode png data and decrypt with password
 		var stream = FFSBinaryStream([UInt8](data))
 
@@ -34,9 +34,21 @@ public enum FFSDecoder {
 
 		let pixels = png.unpack(as: PNG.RGBA<UInt16>.self)
 
-		let bytes = Data(pixelsToBytes(pixels))
+		let bytes = pixelsToBytes(pixels)
 
-		let (decodedData, header) = try FFSImage.decodeFFSImageData(imageData: bytes, password: password)
+		return bytes
+	}
+
+	/// Decode data from FFS images
+	public static func decode(_ imageData: [Data], password: String) throws -> Data {
+		var encryptedFFSData = Data()
+
+		for img in imageData {
+			let ffsData = try decodeImage(with: img)
+			encryptedFFSData.append(ffsData)
+		}
+
+		let (decodedData, header) = try FFSImage.decodeFFSData(ffsData: encryptedFFSData, password: password)
 
 		let relevantData = decodedData[header.dataRange]
 

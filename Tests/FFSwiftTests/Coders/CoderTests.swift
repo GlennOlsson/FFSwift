@@ -3,7 +3,7 @@ import XCTest
 
 public class CoderTests: XCTestCase {
 	func encodeAndAssert(input: String, password: String) {
-		let encodedData = try! FFSEncoder.encode(input.data(using: .utf8)!, password: password)
+		let encodedData = try! FFSEncoder.encode(input.data(using: .utf8)!, password: password, limit: .max)
 
 		let decodedData = try! FFSDecoder.decode(encodedData, password: password)
 
@@ -45,7 +45,7 @@ public class CoderTests: XCTestCase {
 
 	// Assert decode throws with wrong password
 	func testDecodeWrongPassword() {
-		let encodedData = try! FFSEncoder.encode("Hello, World!".data(using: .utf8)!, password: "password")
+		let encodedData = try! FFSEncoder.encode("Hello, World!".data(using: .utf8)!, password: "password", limit: .max)
 
 		// Assert FFSDecoder.decode throws FFSDecodeException
 		XCTAssertThrowsError(try FFSDecoder.decode(encodedData, password: "wrongPassword")) { error in
@@ -63,7 +63,7 @@ public class CoderTests: XCTestCase {
 
 		let password = "password"
 
-		let encodedData = try! FFSEncoder.encode(data, password: password)
+		let encodedData = try! FFSEncoder.encode(data, password: password, limit: .max)
 
 		let decodedData = try! FFSDecoder.decode(encodedData, password: password)
 
@@ -77,7 +77,7 @@ public class CoderTests: XCTestCase {
 			return
 		}
 
-		XCTAssertThrowsError(try FFSDecoder.decode(data, password: "wrongPassword")) { error in
+		XCTAssertThrowsError(try FFSDecoder.decode([data], password: "wrongPassword")) { error in
 			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.decryptionError)
 		}
 	}

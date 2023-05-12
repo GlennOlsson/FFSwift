@@ -46,8 +46,8 @@ public enum FFSImage {
 		return (salt: salt, cipher: cipher)
 	}
 
-	// Create image data for FFS image, including FFS header, encrypting data and adding salts
-	public static func createFFSImageData(data: Data, password: String) throws -> Data {
+	// Create encrypted data for FFS images, including FFS header and salts
+	public static func createFFSData(data: Data, password: String) throws -> Data {
 		// Create header
 		let header = FFSHeader(dataCount: data.count)
 
@@ -76,14 +76,14 @@ public enum FFSImage {
 			throw FFSEncodeError.encryptionError
 		}
 
-		let imageData = combine(data: encryptedData, salt: salt)
+		let ffsData = combine(data: encryptedData, salt: salt)
 
-		return imageData
+		return ffsData
 	}
 
-	// Decode FFS image data
-	public static func decodeFFSImageData(imageData: Data, password: String) throws -> (Data, FFSHeader) {
-		let (salt, cipher) = try unwrap(data: imageData)
+	// Decode FFS data
+	public static func decodeFFSData(ffsData: Data, password: String) throws -> (Data, FFSHeader) {
+		let (salt, cipher) = try unwrap(data: ffsData)
 
 		let key = deriveKey(password: password, salt: salt, length: KEY_LENGTH)
 

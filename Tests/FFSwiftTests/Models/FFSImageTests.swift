@@ -6,7 +6,7 @@ class FFSImageTests: XCTestCase {
 		let data = "Hello, World!".data(using: .utf8)!
 		let password = "password"
 
-		let imageData = try! FFSImage.createFFSImageData(data: data, password: password)
+		let imageData = try! FFSImage.createFFSData(data: data, password: password)
 
 		XCTAssertNotNil(imageData)
 	}
@@ -17,7 +17,7 @@ class FFSImageTests: XCTestCase {
 
 		let password = "password"
 
-		let (decodedData, header) = try! FFSImage.decodeFFSImageData(imageData: imageData, password: password)
+		let (decodedData, header) = try! FFSImage.decodeFFSData(ffsData: imageData, password: password)
 
 		let relevantData = decodedData[header.dataRange]
 
@@ -32,7 +32,7 @@ class FFSImageTests: XCTestCase {
 
 		let password = "wrongPassword"
 
-		XCTAssertThrowsError(try FFSImage.decodeFFSImageData(imageData: imageData, password: password)) { error in
+		XCTAssertThrowsError(try FFSImage.decodeFFSData(ffsData: imageData, password: password)) { error in
 			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.decryptionError)
 		}
 	}
@@ -41,7 +41,7 @@ class FFSImageTests: XCTestCase {
 		let data = "NOT ENCRYPTED DATA".data(using: .utf8)!
 		let password = "password"
 
-		XCTAssertThrowsError(try FFSImage.decodeFFSImageData(imageData: data, password: password)) { error in
+		XCTAssertThrowsError(try FFSImage.decodeFFSData(ffsData: data, password: password)) { error in
 			XCTAssertEqual(error as! FFSDecodeError, FFSDecodeError.invalidData)
 		}
 	}

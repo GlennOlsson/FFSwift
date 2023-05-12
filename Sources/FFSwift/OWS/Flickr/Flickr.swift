@@ -26,6 +26,11 @@ public class FlickrClient: OWSClient {
 		self.accessSecret = accessSecret
 	}
 
+	var sizeLimit: Int {
+		// 200 MB
+		return 200_000_000
+	}
+
 	func getOauthGenerator() -> OAuth {
 		return OAuth(
 			consumerKey: consumerKey,
