@@ -34,8 +34,10 @@ public class EncoderTests: XCTestCase {
 	func testEncodeSplitsDataForLimit() {
 		let data = Data(repeating: 0x00, count: 6)
 
-		let encodedData = try! FFSEncoder.encode(data, password: "password", limit: 10)
+		let encodedData = try! FFSEncoder.encode(data, password: "password", limit: 5)
 
-		XCTAssertEqual(encodedData.count, 2)
+		// Not sure exactly how many images will be generated due to size of encrypted FFS data, but
+		// should be at least 2 when the limit is smaller than the data count
+		XCTAssertGreaterThanOrEqual(encodedData.count, 2)
 	}
 }

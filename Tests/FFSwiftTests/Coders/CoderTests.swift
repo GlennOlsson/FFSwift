@@ -91,4 +91,15 @@ public class CoderTests: XCTestCase {
 
 		XCTAssertEqual(decodedData, data)
 	}
+
+	func testEncodeDecodeImageData() {
+		// TODO: Slow for large images, profile
+		let data = Data(1...100)
+
+		let encodedImage = try! FFSEncoder.encodeImage(with: data)
+
+		let decodedImageData = try! FFSDecoder.decodeImage(with: encodedImage)
+
+		XCTAssertEqual(decodedImageData, data)
+	}
 }

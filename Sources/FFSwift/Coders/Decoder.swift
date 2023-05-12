@@ -26,6 +26,28 @@ func pixelsToBytes(_ pixels: [PNG.RGBA<UInt16>]) -> Data {
 }
 
 public enum FFSDecoder {
+	internal static func extractRelevantImageData(from data: Data) throws -> Data {
+		// Take first 8 bytes of data
+		var index = data.startIndex
+
+		guard data.endIndex >= index + 8 else {
+			throw FFSDecodeError.notEnoughData
+		}
+
+		let countData = data[index ..< index + 8]
+		index += 8
+
+		let relevantDataCount = UInt64(data: countData)
+
+		let endIndex = index + Int(relevantDataCount)
+
+		guard endIndex <= data.endIndex else {
+			throw FFSDecodeError.notEnoughData
+		}
+
+		return data[index ..< endIndex]
+	}
+
 	internal static func decodeImage(with data: Data) throws -> Data {
 		// Decode png data and decrypt with password
 		var stream = FFSBinaryStream([UInt8](data))
@@ -36,14 +58,7 @@ public enum FFSDecoder {
 
 		let bytes = pixelsToBytes(pixels)
 
-		// Take first 8 bytes of data
-		var index = bytes.startIndex
-		let countData = bytes[index ..< index + 8]
-		index += 8
-
-		let relevantDataCount = UInt64(data: countData)
-
-		return bytes[index ..< index + Int(relevantDataCount)]
+		return try extractRelevantImageData(from: bytes)
 	}
 
 	/// Decode data from FFS images
