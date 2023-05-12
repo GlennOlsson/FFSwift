@@ -78,8 +78,6 @@ public enum FFSEncoder {
 	public static func encode(_ data: Data, password: String, limit: Int) throws -> [Data] {
 		let ffsData = try FFSImage.createFFSData(data: data, password: password)
 
-		getLogger().notice("FFS Data \(ffsData.hexadecimal, privacy: .public)")
-
 		// Create an image for each `limit` bytes
 		var lowIndex = 0
 		var highIndex = limit

@@ -49,14 +49,10 @@ public enum FFSDecoder {
 	/// Decode data from FFS images
 	public static func decode(_ imageData: [Data], password: String) throws -> Data {
 		var encryptedFFSData = Data()
-
-		getLogger().notice("Decoding \(imageData.count) images")
 		for img in imageData {
 			let decodedImageData = try decodeImage(with: img)
 			encryptedFFSData.append(decodedImageData)
 		}
-
-		getLogger().notice("Decoding FFS data: \(encryptedFFSData.hexadecimal, privacy: .public))")
 
 		let (decodedData, header) = try FFSImage.decodeFFSData(ffsData: encryptedFFSData, password: password)
 

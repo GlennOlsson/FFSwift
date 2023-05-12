@@ -48,8 +48,6 @@ class InodeTableEntry: BinaryStructure {
 
 		var index = raw.startIndex + InodeTableEntry.magic.count
 
-		getLogger().notice("index is \(index) and raw.count is \(raw.count), end index is \(raw.endIndex)")
-
 		version = raw[index]
 		index += 1
 
