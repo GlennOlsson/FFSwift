@@ -119,4 +119,10 @@ class DirectoryTests: XCTestCase, BinaryStructureTester {
 			XCTAssertEqual(error as! DirectoryError, DirectoryError.noEntryWithName)
 		}
 	}
+
+	func testCountIsMinCountWhenNoEntries() {
+		let directory = try! Directory(inode: 1)
+
+		XCTAssertEqual(directory.count, Directory.minCount)
+	}
 }

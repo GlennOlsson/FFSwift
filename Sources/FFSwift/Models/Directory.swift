@@ -21,8 +21,8 @@ class Directory: BinaryStructure {
 	}
 
 	static var minCount: Int {
-		// Only version and magic are required
-		return Directory.magic.count + 1
+		// Only version, magic and the size of the selfInode (8 bytes) are required
+		return Directory.magic.count + 1 + 8
 	}
 
 	// MARK: Directory attributes

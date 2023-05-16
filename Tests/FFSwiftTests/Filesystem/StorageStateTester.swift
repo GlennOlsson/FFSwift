@@ -11,7 +11,13 @@ class StorageStateTester: XCTestCase {
 
 	override func setUp() {
 		inodeTable = mockedInodeTable()
-		state = StorageState(inodeTable: inodeTable, password: password)
+		state = StorageState(
+			inodeTable: inodeTable,
+			password: password,
+			tablePosts: [
+				INODE_TABLE_POST,
+			]
+		)
 		owsClient = MockedOWSClient()
 		state.addOWS(client: owsClient, for: OWS_CASE)
 	}
@@ -104,5 +110,211 @@ class StorageStateTester: XCTestCase {
 
 		XCTAssertEqual(receivedData.count, 1)
 		XCTAssertEqual(receivedData.first!, data)
+	}
+
+	func testCreateFileReturnsCorrectInode() async {
+		let nextInode = inodeTable.getNextInode()
+
+		// Mock these calls but don't have to return/do anything valuable
+		owsClient._delete = { _ in
+		}
+
+		owsClient._get = { _ in
+			Data()
+		}
+
+		owsClient._upload = { _ in
+			"mock-id"
+		}
+
+		let inode = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
+
+		XCTAssertEqual(inode, nextInode)
+	}
+
+	func testCreateFileCallsDeleteOnOldPosts() async {
+		let expectation = self.expectation(description: "Delete called on expected posts")
+
+		var expectedPostsIDs = [
+			DIR_POST_ID,
+			INODE_TABLE_POST_ID,
+		]
+
+		expectation.expectedFulfillmentCount = expectedPostsIDs.count
+
+		owsClient._delete = { id in
+			if let index = expectedPostsIDs.firstIndex(of: id) {
+				// Make sure it is not counting the same call twice
+				expectedPostsIDs.remove(at: index)
+				expectation.fulfill()
+			} else {
+				XCTFail("Unexpected delete call on post \(id)")
+			}
+		}
+
+		owsClient._get = { _ in
+			Data()
+		}
+
+		owsClient._upload = { _ in
+			"mock-id"
+		}
+
+		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
+
+		await waitForExpectations(timeout: 1, handler: nil)
+	}
+
+	func testUpdateInodeTableCallsDeleteOnInodeTablePost() async {
+		let expectation = self.expectation(description: "delete is called on the Inode Table Post")
+
+		expectation.expectedFulfillmentCount = 1
+
+		owsClient._delete = { id in
+			if id == INODE_TABLE_POST_ID {
+				expectation.fulfill()
+			}
+		}
+
+		owsClient._get = { _ in
+			Data()
+		}
+
+		owsClient._upload = { _ in
+			"mock-id"
+		}
+
+		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
+
+		await waitForExpectations(timeout: 1)
+	}
+
+	func testUploadReturnsCorrectID() async {
+		let data = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		let id = "mock-id"
+
+		owsClient.sizeLimit = .max
+
+		owsClient._upload = { _ in
+			id
+		}
+
+		let postID = try! await state.upload(data: data, to: OWS_CASE)
+
+		// Should be 1 as the limit is so high
+		XCTAssertEqual(postID.count, 1)
+		XCTAssertEqual(postID.first!.id, id)
+	}
+
+	func testUploadUploadsFFSData() async {
+		let data = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		// So we can expect 1 upload only
+		owsClient.sizeLimit = .max
+
+		var uploadedData: Data!
+		owsClient._upload = { data in
+			uploadedData = data
+			return "mock-id"
+		}
+
+		let _ = try! await state.upload(data: data, to: OWS_CASE)
+
+		// Here uploadedData will be set
+
+		let decodedData = try! FFSDecoder.decode([uploadedData], password: password)
+
+		XCTAssertEqual(decodedData, data)
+	}
+
+	func testUpdateDirectoryUploadsDirectoryData() async {
+		let dir = mockedDirectory()
+
+		// So we can expect 1 upload only
+		owsClient.sizeLimit = .max
+
+		var uploadedData: Data!
+		owsClient._upload = { data in
+			uploadedData = data
+			return "mock-id"
+		}
+
+		owsClient._delete = { _ in
+		}
+
+		let _ = try! await state.update(directory: dir, to: OWS_CASE)
+
+		// Here uploadedData will be set
+
+		let decodedData = try! FFSDecoder.decode([uploadedData], password: password)
+
+		XCTAssertEqual(decodedData, dir.raw)
+	}
+
+	func testUpdateDirectoryDeletesOldDirectoryPost() async {
+		let dir = mockedDirectory()
+
+		owsClient._upload = { _ in
+			"mock-id"
+		}
+
+		let expectation = self.expectation(description: "delete is called on the Directory Post")
+		expectation.expectedFulfillmentCount = 1
+
+		owsClient._delete = { id in
+			if id == DIR_POST_ID {
+				expectation.fulfill()
+			} else {
+				XCTFail("Unexpected delete call on post \(id)")
+			}
+		}
+
+		let _ = try! await state.update(directory: dir, to: OWS_CASE)
+
+		await waitForExpectations(timeout: 1)
+	}
+
+	func testUpdateInodeTableUploadsInodeTableData() async {
+		// So we can expect 1 upload only
+		owsClient.sizeLimit = .max
+
+		var uploadedData: Data!
+		owsClient._upload = { data in
+			uploadedData = data
+			return "mock-id"
+		}
+
+		owsClient._delete = { _ in
+		}
+
+		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
+
+		// Here uploadedData will be set
+
+		let decodedData = try! FFSDecoder.decode([uploadedData], password: password)
+
+		XCTAssertEqual(decodedData, inodeTable.raw)
+	}
+
+	func testUpdateInodeTableDeletesOldInodeTablePost() async {
+		owsClient._upload = { _ in
+			"mock-id"
+		}
+
+		let expectation = self.expectation(description: "delete is called on the Inode Table Post")
+		expectation.expectedFulfillmentCount = 1
+
+		owsClient._delete = { id in
+			if id == INODE_TABLE_POST_ID {
+				expectation.fulfill()
+			} else {
+				XCTFail("Unexpected delete call on post \(id)")
+			}
+		}
+
+		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
+
+		await waitForExpectations(timeout: 1)
 	}
 }

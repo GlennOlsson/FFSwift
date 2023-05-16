@@ -1,13 +1,14 @@
 import Foundation
 
 class StorageState {
-	var inodeTablePosts: [Post] = []
+	var inodeTablePosts: [Post]
 	let inodeTable: InodeTable
 	let password: String // TODO: Find better way to store password
 
-	init(inodeTable: InodeTable, password: String) {
+	init(inodeTable: InodeTable, password: String, tablePosts: [Post]) {
 		self.inodeTable = inodeTable
 		self.password = password
+		inodeTablePosts = tablePosts
 	}
 
 	func getFile(with inode: Inode) async throws -> Data {
@@ -54,12 +55,6 @@ class StorageState {
 		return posts
 	}
 
-	internal func delete(post: Post) async throws {
-		let owsClient = try getOWSClient(for: post.ows)
-
-		await owsClient.delete(id: post.id)
-	}
-
 	internal func createInodeEntry(
 		with size: UInt64,
 		isDirectory: Bool,
@@ -79,6 +74,47 @@ class StorageState {
 		return entry
 	}
 
+	internal func delete(post: Post) async throws {
+		let owsClient = try getOWSClient(for: post.ows)
+
+		await owsClient.delete(id: post.id)
+	}
+
+	/// Deletes the posts from the OWS in a background task
+	internal func delete(posts: [Post]) {
+		// Remove old posts of directory and inode table on another thread
+		// We don't care about the result of this task
+		Task {
+			for post in posts {
+				try await delete(post: post)
+			}
+		}
+	}
+
+	internal func update(directory: Directory, to ows: OnlineWebService) async throws {
+		let directoryInodeEntry = try inodeTable.get(with: directory.selfInode)
+
+		let currentDirectoryPosts = directoryInodeEntry.posts
+
+		// Upload new directory data
+		let rawDirectory = directory.raw
+		let updatedDirectoryPosts = try await upload(data: rawDirectory, to: ows)
+
+		// Update directory entry in inode table
+		directoryInodeEntry.posts = updatedDirectoryPosts
+
+		delete(posts: currentDirectoryPosts)
+	}
+
+	internal func update(inodeTable: InodeTable, to ows: OnlineWebService) async throws {
+		let currentInodeTablePosts = inodeTablePosts
+
+		// Update inode table on ows
+		inodeTablePosts = try await upload(data: inodeTable.raw, to: ows)
+
+		delete(posts: currentInodeTablePosts)
+	}
+
 	func createFile(
 		in directory: Directory,
 		with name: String,
@@ -90,37 +126,17 @@ class StorageState {
 
 		// Add file entry in inode table
 		let inodeTableEntry = createInodeEntry(
-			with: UInt64(data.count), 
-			isDirectory: false, 
+			with: UInt64(data.count),
+			isDirectory: false,
 			posts: filePosts
 		)
 		let inode = inodeTable.add(entry: inodeTableEntry)
 
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
+		try await update(directory: directory, to: ows)
 
-		let directoryInodeEntry = try inodeTable.get(with: directory.selfInode)
-
-		let currentDirectoryPosts = directoryInodeEntry.posts
-		let currentInodeTablePosts = inodeTablePosts
-
-		// Upload new directory data
-		let rawDirectory = directory.raw
-		let updatedDirectoryPosts = try await upload(data: rawDirectory, to: ows)
-
-		// Update directory entry in inode table
-		directoryInodeEntry.posts = updatedDirectoryPosts
-
-		// Update inode table on ows
-		inodeTablePosts = try await upload(data: inodeTable.raw, to: ows)
-
-		// Remove old posts of directory and inode table on another thread
-		// We don't care about the result of this task
-		Task {
-			for post in currentDirectoryPosts + currentInodeTablePosts {
-				try await delete(post: post)
-			}
-		}
+		try await update(inodeTable: inodeTable, to: ows)
 
 		return inode
 	}
