@@ -115,30 +115,62 @@ class StorageState {
 		delete(posts: currentInodeTablePosts)
 	}
 
+	/// Update the file data on the OWS, and remove the old data
+	internal func update(inodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
+		let currentFilePosts = inodeEntry.posts
+
+		inodeEntry.posts = try await upload(data: data, to: ows)
+
+		delete(posts: currentFilePosts)
+	}
+
 	func createFile(
 		in directory: Directory,
 		with name: String,
 		using ows: OnlineWebService,
 		data: Data
 	) async throws -> Inode {
-		// Upload file data
-		let filePosts = try await upload(data: data, to: ows)
-
-		// Add file entry in inode table
+		// Add file entry in inode table with no posts, they will be added later
+		// Calling delete on an empty list will do nothing
 		let inodeTableEntry = createInodeEntry(
 			with: UInt64(data.count),
 			isDirectory: false,
-			posts: filePosts
+			posts: []
 		)
 		let inode = inodeTable.add(entry: inodeTableEntry)
 
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
+
+		// Update directory as it has been modified
 		try await update(directory: directory, to: ows)
+
+		// Upload file data
+		// This also updates the inode table in the OWS
+		try await update(inodeEntry: inodeTableEntry, to: ows, data: data)
 
 		try await update(inodeTable: inodeTable, to: ows)
 
 		return inode
+	}
+
+	func updateFile(
+		in directory: Directory,
+		with name: String,
+		using ows: OnlineWebService,
+		data: Data
+	) async throws {
+		// Get inode of file
+		let inode = try directory.inode(of: name)
+
+		// Get inode entry
+		let inodeEntry = try inodeTable.get(with: inode)
+
+		// Update file data
+		try await update(inodeEntry: inodeEntry, to: ows, data: data)
+
+		// Update inode table
+		try await update(inodeTable: inodeTable, to: ows)
 	}
 
 	internal func getData(from entry: InodeTableEntry) async throws -> [Data] {
