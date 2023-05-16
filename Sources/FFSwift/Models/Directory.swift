@@ -29,6 +29,9 @@ class Directory: BinaryStructure {
 
 	private var entries: [String: Inode]
 
+	// Inode of the directory itself
+	var selfInode: Inode
+
 	private func assertFilenameLength(_ filename: String) throws {
 		let nameData = filename.data(using: .utf8)!
 
@@ -37,8 +40,9 @@ class Directory: BinaryStructure {
 		}
 	}
 
-	init(entries: [String: Inode] = [:], version: UInt8 = 1) throws {
+	init(entries: [String: Inode] = [:], inode: Inode, version: UInt8 = 1) throws {
 		self.entries = entries
+		self.selfInode = inode
 		self.version = version
 
 		try entries.forEach { filename, _ in
@@ -53,6 +57,9 @@ class Directory: BinaryStructure {
 
 		self.version = raw[index]
 		index += 1
+
+		self.selfInode = UInt64(data: raw[index ..< index + 8])
+		index += 8
 
 		var entries: [String: Inode] = [:]
 
@@ -77,6 +84,8 @@ class Directory: BinaryStructure {
 
 		data.append(Directory.magic.data(using: .utf8)!)
 		data.append(version.data)
+
+		data.append(selfInode.data)
 
 		for (name, inode) in entries {
 			// Take the name as utf8 data and then count the bytes as

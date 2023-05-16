@@ -7,8 +7,7 @@ class DirectoryTests: XCTestCase, BinaryStructureTester {
 		return try! Directory(entries: [
 			"file1": 0,
 			"file2": 1,
-		]
-		)
+		], inode: 1)
 	}
 
 	func testEncodeDecode() {
@@ -72,7 +71,7 @@ class DirectoryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testAddThrowsForTooLongName() {
-		let directory = try! Directory()
+		let directory = try! Directory(inode: 1)
 
 		let name = String(repeating: "a", count: 1000)
 
@@ -86,13 +85,13 @@ class DirectoryTests: XCTestCase, BinaryStructureTester {
 
 		XCTAssertThrowsError(try Directory(entries: [
 			name: 0,
-		])) { error in
+		], inode: 1)) { error in
 			XCTAssertEqual(error as! DirectoryError, DirectoryError.nameTooLong)
 		}
 	}
 
 	func testThrowsForSameName() {
-		let directory = try! Directory()
+		let directory = try! Directory(inode: 1)
 
 		let name = "some-filename"
 
@@ -104,7 +103,7 @@ class DirectoryTests: XCTestCase, BinaryStructureTester {
 	}
 
 	func testThrowsForNonExistingFilename() {
-		let directory = try! Directory()
+		let directory = try! Directory(inode: 1)
 
 		let name = "some-filename"
 

@@ -27,7 +27,7 @@ class InodeTableEntry: BinaryStructure {
 	// File/directory size (combined size of post data)
 	let metadata: InodeTableEntryMetadata
 
-	let posts: [Post]
+	var posts: [Post]
 
 	init(size: UInt64, isDirectory: Bool, timeCreated: UInt64, timeUpdated: UInt64, timeAccessed: UInt64, posts: [Post], version: UInt8 = 1) {
 		self.version = version
@@ -201,8 +201,11 @@ public class InodeTable: BinaryStructure {
 		return inode
 	}
 
-	func get(with inode: Inode) -> InodeTableEntry? {
-		entries[inode]
+	func get(with inode: Inode) throws -> InodeTableEntry {
+		guard let entry = entries[inode] else {
+			throw FilesystemException.noFileWithInode(inode)
+		}
+		return entry
 	}
 
 	public static func == (a: InodeTable, b: InodeTable) -> Bool {

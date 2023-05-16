@@ -41,7 +41,7 @@ public class EncoderTests: XCTestCase {
 		XCTAssertGreaterThanOrEqual(encodedData.count, 2)
 	}
 
-	func testCreateImageDataReturnsSameDataForSquarableData() {
+	func testCreateImageDataReturnsSameDataForSquareableData() {
 		// If data count + size of data (with 8 bytes) require a square number of pixels, 
 		// then the image will be square, i.e. no extra bytes are needed
 
@@ -64,7 +64,7 @@ public class EncoderTests: XCTestCase {
 		XCTAssertEqual(UInt64(120).data, imageData[0..<8])
 	}
 
-	func testCreateImageDataReturnsExtraDataForNonSquarableData() {
+	func testCreateImageDataReturnsExtraDataForNonSquareableData() {
 		// Similar to above, but for 121 bytes so one extra row is needed
 
 		let data = Data(1...121)

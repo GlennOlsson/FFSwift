@@ -19,10 +19,10 @@ let ACCESSED_DATE: Date = ACCESSED_DATE.addingTimeInterval(400)
 class MockedOWSClient: OWSClient {
     var sizeLimit: Int = .max
 
-	let _get: ((_: String) async throws -> Data)?
-	let _upload: ((_: Data) async throws -> String)?
-	let _getRecent: ((_: Int) async throws -> [String])?
-	let _delete: ((_: String) async -> Void)?
+	var _get: ((_: String) async throws -> Data)?
+	var _upload: ((_: Data) async throws -> String)?
+	var _getRecent: ((_: Int) async throws -> [String])?
+	var _delete: ((_: String) async -> Void)?
 
 	/// Only used functions are required, but the ones not passed in will throw an error if calleds
 	init(
@@ -90,5 +90,5 @@ func mockedInodeTable() -> InodeTable {
 func mockedDirectory() -> Directory {
 	try! Directory(entries: [
 		FILE_NAME: FILE_INODE,
-	])
+	], inode: 1)
 }
