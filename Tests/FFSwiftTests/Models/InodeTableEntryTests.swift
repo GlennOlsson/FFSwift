@@ -10,7 +10,6 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 			isDirectory: false,
 			timeCreated: UInt64(Date().timeIntervalSince1970),
 			timeUpdated: UInt64(Date().timeIntervalSince1970),
-			timeAccessed: UInt64(Date().timeIntervalSince1970),
 			posts: [
 				PostTests.mockedStructure(),
 				PostTests.mockedStructure()
@@ -24,7 +23,6 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 			isDirectory: false,
 			timeCreated: UInt64(Date().timeIntervalSince1970),
 			timeUpdated: UInt64(Date().timeIntervalSince1970),
-			timeAccessed: UInt64(Date().timeIntervalSince1970),
 			posts: []
 		)
 
@@ -41,7 +39,6 @@ class InodeTableEntryTests: XCTestCase, BinaryStructureTester {
 			isDirectory: true,
 			timeCreated: UInt64(Date().timeIntervalSince1970),
 			timeUpdated: UInt64(Date().timeIntervalSince1970),
-			timeAccessed: UInt64(Date().timeIntervalSince1970),
 			posts: [
 				PostTests.mockedStructure(),
 				PostTests.mockedStructure()

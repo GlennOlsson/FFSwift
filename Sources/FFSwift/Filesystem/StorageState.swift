@@ -67,13 +67,13 @@ class StorageState {
 			isDirectory: isDirectory,
 			timeCreated: currentTime,
 			timeUpdated: currentTime,
-			timeAccessed: currentTime,
 			posts: posts
 		)
 
 		return entry
 	}
 
+	/// Delete a post from its ows
 	internal func delete(post: Post) async throws {
 		let owsClient = try getOWSClient(for: post.ows)
 
@@ -91,6 +91,18 @@ class StorageState {
 		}
 	}
 
+	/// Update the inode table on the OWS, and remove the old data
+	internal func update(inodeTable: InodeTable, to ows: OnlineWebService) async throws {
+		let currentInodeTablePosts = inodeTablePosts
+
+		// Update inode table on ows
+		inodeTablePosts = try await upload(data: inodeTable.raw, to: ows)
+
+		delete(posts: currentInodeTablePosts)
+	}
+
+	/// Update the directory on the OWS, and remove the old data. Updates the current instance
+	/// of the inode table, but doesn't update it on the OWS
 	internal func update(directory: Directory, to ows: OnlineWebService) async throws {
 		let directoryInodeEntry = try inodeTable.get(with: directory.selfInode)
 
@@ -106,20 +118,14 @@ class StorageState {
 		delete(posts: currentDirectoryPosts)
 	}
 
-	internal func update(inodeTable: InodeTable, to ows: OnlineWebService) async throws {
-		let currentInodeTablePosts = inodeTablePosts
+	/// Update the file data on the OWS, and remove the old data. Updates the current instance
+	/// of the inode table, but doesn't update it on the OWS
+	internal func update(file withInodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
+		let currentFilePosts = withInodeEntry.posts
 
-		// Update inode table on ows
-		inodeTablePosts = try await upload(data: inodeTable.raw, to: ows)
-
-		delete(posts: currentInodeTablePosts)
-	}
-
-	/// Update the file data on the OWS, and remove the old data
-	internal func update(inodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
-		let currentFilePosts = inodeEntry.posts
-
-		inodeEntry.posts = try await upload(data: data, to: ows)
+		withInodeEntry.posts = try await upload(data: data, to: ows)
+		withInodeEntry.metadata.size = UInt64(data.count)
+		withInodeEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
 
 		delete(posts: currentFilePosts)
 	}
@@ -142,13 +148,20 @@ class StorageState {
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
 
-		// Update directory as it has been modified
-		try await update(directory: directory, to: ows)
+		await withThrowingTaskGroup(of: Void.self) { group async in
+			group.addTask {
+				// Upload file data
+				try await self.update(file: inodeTableEntry, to: ows, data: data)
+			}
 
-		// Upload file data
-		// This also updates the inode table in the OWS
-		try await update(inodeEntry: inodeTableEntry, to: ows, data: data)
+			group.addTask {
+				// Update directory as it has been modified
+				try await self.update(directory: directory, to: ows)
+			}
+		}
 
+		// Update inode table. This must be done after the directory and file have been updated
+		// so their new posts are accounted for
 		try await update(inodeTable: inodeTable, to: ows)
 
 		return inode
@@ -167,7 +180,7 @@ class StorageState {
 		let inodeEntry = try inodeTable.get(with: inode)
 
 		// Update file data
-		try await update(inodeEntry: inodeEntry, to: ows, data: data)
+		try await update(file: inodeEntry, to: ows, data: data)
 
 		// Update inode table
 		try await update(inodeTable: inodeTable, to: ows)

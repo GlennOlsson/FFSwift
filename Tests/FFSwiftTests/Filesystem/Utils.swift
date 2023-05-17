@@ -22,17 +22,17 @@ let INODE_TABLE_POST: Post = .init(ows: OWS_CASE, id: INODE_TABLE_POST_ID)
 class MockedOWSClient: OWSClient {
     var sizeLimit: Int = .max
 
-	var _get: ((_: String) async throws -> Data)?
-	var _upload: ((_: Data) async throws -> String)?
-	var _getRecent: ((_: Int) async throws -> [String])?
-	var _delete: ((_: String) async -> Void)?
+	var _get: ((_: String) async throws -> Data)
+	var _upload: ((_: Data) async throws -> String)
+	var _getRecent: ((_: Int) async throws -> [String])
+	var _delete: ((_: String) async -> Void)
 
 	/// Only used functions are required, but the ones not passed in will throw an error if calleds
 	init(
-		get: ((_: String) async throws -> Data)? = nil,
-		upload: ((_: Data) async throws -> String)? = nil,
-		getRecent: ((_: Int) async throws -> [String])? = nil,
-		delete: ((_: String) async -> Void)? = nil
+		get: @escaping (_: String) async throws -> Data = { _ in Data() },
+		upload: @escaping (_: Data) async throws -> String = { _ in "mocked-id"},
+		getRecent: @escaping (_: Int) async throws -> [String] = { _ in ["mocked-id"] },
+		delete: @escaping (_: String) async -> Void = { _ in}
 	) {
 		_get = get
 		_upload = upload
@@ -41,19 +41,19 @@ class MockedOWSClient: OWSClient {
 	}
 
 	func get(with id: String) async throws -> Data {
-		return try await _get!(id)
+		return try await _get(id)
 	}
 
 	func upload(data: Data) async throws -> String {
-		return try await _upload!(data)
+		return try await _upload(data)
 	}
 
 	func getRecent(n: Int) async throws -> [String] {
-		return try await _getRecent!(n)
+		return try await _getRecent(n)
 	}
 
 	func delete(id: String) async {
-		await _delete!(id)
+		await _delete(id)
 	}
 }
 
@@ -65,7 +65,6 @@ func mockedInodeTable() -> InodeTable {
 			isDirectory: true,
 			timeCreated: UInt64(CREATED_DATE.timeIntervalSince1970),
 			timeUpdated: UInt64(UPDATED_DATE.timeIntervalSince1970),
-			timeAccessed: UInt64(ACCESSED_DATE.timeIntervalSince1970),
 			posts: [
 				Post(
 					ows: OWS_CASE,
@@ -78,7 +77,6 @@ func mockedInodeTable() -> InodeTable {
 			isDirectory: false,
 			timeCreated: UInt64(CREATED_DATE.timeIntervalSince1970),
 			timeUpdated: UInt64(UPDATED_DATE.timeIntervalSince1970),
-			timeAccessed: UInt64(ACCESSED_DATE.timeIntervalSince1970),
 			posts: [
 				Post(
 					ows: OWS_CASE,

@@ -1,11 +1,10 @@
 import Foundation
 
 struct InodeTableEntryMetadata {
-	let size: UInt64
-	let isDirectory: Bool
-	let timeCreated: UInt64
-	let timeUpdated: UInt64
-	let timeAccessed: UInt64
+	var size: UInt64
+	var isDirectory: Bool
+	var timeCreated: UInt64
+	var timeUpdated: UInt64
 }
 
 class InodeTableEntry: BinaryStructure {
@@ -16,28 +15,27 @@ class InodeTableEntry: BinaryStructure {
 		return InodeTableEntry.minCount + posts.reduce(0) { $0 + $1.count } + posts.count
 	}
 
-	// Magic + version + size + isDirectory + timeCreated + timeUpdated + timeAccessed
-	static var minCount = InodeTableEntry.magic.count + 1 + 8 + 1 + 8 + 8 + 8
+	// Magic + version + size + isDirectory + timeCreated + timeUpdated
+	static var minCount = InodeTableEntry.magic.count + 1 + 8 + 1 + 8 + 8
 
-	static var magic = "INOD"
+	static var magic = "INDE"
 	var version: UInt8
 
 	// MARK: Entry attributes
 
 	// File/directory size (combined size of post data)
-	let metadata: InodeTableEntryMetadata
+	var metadata: InodeTableEntryMetadata
 
 	var posts: [Post]
 
-	init(size: UInt64, isDirectory: Bool, timeCreated: UInt64, timeUpdated: UInt64, timeAccessed: UInt64, posts: [Post], version: UInt8 = 1) {
+	init(size: UInt64, isDirectory: Bool, timeCreated: UInt64, timeUpdated: UInt64, posts: [Post], version: UInt8 = 1) {
 		self.version = version
 
 		metadata = InodeTableEntryMetadata(
 			size: size,
 			isDirectory: isDirectory,
 			timeCreated: timeCreated,
-			timeUpdated: timeUpdated,
-			timeAccessed: timeAccessed
+			timeUpdated: timeUpdated
 		)
 
 		self.posts = posts
@@ -61,15 +59,12 @@ class InodeTableEntry: BinaryStructure {
 		index += 8
 		let timeUpdated = UInt64(data: raw[index ..< index + 8])
 		index += 8
-		let timeAccessed = UInt64(data: raw[index ..< index + 8])
-		index += 8
 
 		metadata = InodeTableEntryMetadata(
 			size: size,
 			isDirectory: isDirectory,
 			timeCreated: timeCreated,
-			timeUpdated: timeUpdated,
-			timeAccessed: timeAccessed
+			timeUpdated: timeUpdated
 		)
 
 		var posts: [Post] = []
@@ -94,7 +89,6 @@ class InodeTableEntry: BinaryStructure {
 		data.append(metadata.isDirectory ? 1 : 0)
 		data.append(metadata.timeCreated.data)
 		data.append(metadata.timeUpdated.data)
-		data.append(metadata.timeAccessed.data)
 
 		for post in posts {
 			let rawPost = post.raw
@@ -111,7 +105,6 @@ class InodeTableEntry: BinaryStructure {
 			a.metadata.isDirectory == b.metadata.isDirectory &&
 			a.metadata.timeCreated == b.metadata.timeCreated &&
 			a.metadata.timeUpdated == b.metadata.timeUpdated &&
-			a.metadata.timeAccessed == b.metadata.timeAccessed &&
 			a.posts == b.posts
 	}
 }
