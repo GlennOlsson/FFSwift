@@ -80,4 +80,35 @@ class InodeTableTests: XCTestCase, BinaryStructureTester {
 			XCTAssertEqual(error as! FFSBinaryStructureError, FFSBinaryStructureError.badDataCount)
 		}
 	}
+
+	func testGetNextInodeReturnsSameMultipleTimes() {
+		let structure = Self.mockedStructure()
+
+		let inode = structure.getNextInode()
+
+		XCTAssertEqual(inode, structure.getNextInode())
+		XCTAssertEqual(inode, structure.getNextInode())
+	}
+
+	func testGetNextInodeIsSameAsAddedInode() {
+		let structure = Self.mockedStructure()
+
+		let expectedInode = structure.getNextInode()
+
+		let inode = structure.add(entry: InodeTableEntryTests.mockedStructure())
+
+		XCTAssertEqual(inode, expectedInode)
+	}
+
+	func testGetNextInodeAddsAfterAdd() {
+		let structure = Self.mockedStructure()
+
+		let inodeBefore = structure.getNextInode()
+
+		let _ = structure.add(entry: InodeTableEntryTests.mockedStructure())
+
+		let inodeAfter = structure.getNextInode()
+
+		XCTAssertEqual(inodeAfter, inodeBefore + 1)
+	}
 }

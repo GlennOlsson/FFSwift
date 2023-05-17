@@ -60,7 +60,9 @@ class StorageState {
 		isDirectory: Bool,
 		posts: [Post]
 	) -> InodeTableEntry {
-		let currentTime = UInt64(Date().timeIntervalSince1970)
+		let currentDate = Date()
+		// Converting Double to UInt64 is safe, only loosing < second precision
+		let currentTime = UInt64(currentDate.timeIntervalSince1970)
 
 		let entry = InodeTableEntry(
 			size: size,
@@ -120,12 +122,12 @@ class StorageState {
 
 	/// Update the file data on the OWS, and remove the old data. Updates the current instance
 	/// of the inode table, but doesn't update it on the OWS
-	internal func update(file withInodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
-		let currentFilePosts = withInodeEntry.posts
+	internal func update(fileWith inodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
+		let currentFilePosts = inodeEntry.posts
 
-		withInodeEntry.posts = try await upload(data: data, to: ows)
-		withInodeEntry.metadata.size = UInt64(data.count)
-		withInodeEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
+		inodeEntry.posts = try await upload(data: data, to: ows)
+		inodeEntry.metadata.size = UInt64(data.count)
+		inodeEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
 
 		delete(posts: currentFilePosts)
 	}
@@ -148,39 +150,42 @@ class StorageState {
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
 
-		await withThrowingTaskGroup(of: Void.self) { group async in
+		try await withThrowingTaskGroup(of: Void.self) { group async throws in
 			group.addTask {
 				// Upload file data
-				try await self.update(file: inodeTableEntry, to: ows, data: data)
+				try await self.update(fileWith: inodeTableEntry, to: ows, data: data)
 			}
 
 			group.addTask {
 				// Update directory as it has been modified
 				try await self.update(directory: directory, to: ows)
 			}
+
+			// // Wait for both to finish, but no need to return anything
+			// // The inode table instance is updated in the functions
+			// for try await _ in group {
+			// }
 		}
 
 		// Update inode table. This must be done after the directory and file have been updated
 		// so their new posts are accounted for
 		try await update(inodeTable: inodeTable, to: ows)
 
+		getLogger().notice("Uploaded inode table data")
+
 		return inode
 	}
 
 	func updateFile(
-		in directory: Directory,
-		with name: String,
+		with inode: Inode,
 		using ows: OnlineWebService,
 		data: Data
 	) async throws {
-		// Get inode of file
-		let inode = try directory.inode(of: name)
-
 		// Get inode entry
 		let inodeEntry = try inodeTable.get(with: inode)
 
 		// Update file data
-		try await update(file: inodeEntry, to: ows, data: data)
+		try await update(fileWith: inodeEntry, to: ows, data: data)
 
 		// Update inode table
 		try await update(inodeTable: inodeTable, to: ows)

@@ -90,7 +90,9 @@ class InodeTableEntry: BinaryStructure {
 		data.append(metadata.timeCreated.data)
 		data.append(metadata.timeUpdated.data)
 
-		for post in posts {
+		// Sorted so consistent over multiple raw calls. Assumes all IDs are unique across all OWSs,
+		// will not certainly be the same order otherwise. But this is disregarded for now.
+		for post in posts.sorted(by: { $0.id < $1.id }) {
 			let rawPost = post.raw
 			data.append(UInt8(rawPost.count))
 			data.append(rawPost)
@@ -166,7 +168,8 @@ public class InodeTable: BinaryStructure {
 		data.append(InodeTable.magic.data(using: .utf8)!)
 		data.append(version.data)
 
-		for (inode, entry) in entries {
+		// Sorted so consistent over multiple raw calls
+		for (inode, entry) in entries.sorted(by: { $0.key < $1.key }) {
 			data.append(inode.data)
 
 			let rawEntry = entry.raw

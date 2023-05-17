@@ -9,6 +9,8 @@ class StorageStateTester: XCTestCase {
 	var inodeTable: InodeTable!
 	var owsClient: MockedOWSClient!
 
+	let EXPECTATION_TIMEOUT: TimeInterval = 10
+
 	override func setUp() {
 		inodeTable = mockedInodeTable()
 		state = StorageState(
@@ -142,7 +144,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
 
-		await waitForExpectations(timeout: 1, handler: nil)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testCreateFileCallsUploadOnNewFile() async {
@@ -163,7 +165,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: fileData)
 
-		await waitForExpectations(timeout: 1, handler: nil)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testCreateFileUploadsNewDirectory() async {
@@ -190,7 +192,7 @@ class StorageStateTester: XCTestCase {
 		let directory = mockedDirectory()
 		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: Data())
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testCreateFileUploadsNewInodeTable() async {
@@ -211,7 +213,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testUpdateInodeTableCallsDeleteOnInodeTablePost() async {
@@ -227,7 +229,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testUploadReturnsCorrectID() async {
@@ -269,7 +271,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.upload(data: data, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testUpdateDirectoryUploadsDirectoryData() async {
@@ -292,7 +294,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.update(directory: dir, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testUpdateDirectoryDeletesOldDirectoryPost() async {
@@ -311,7 +313,32 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.update(directory: dir, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
+	}
+
+	func testUpdateDirectoryReplacesPosts() async {
+		let directory = mockedDirectory()
+
+		let expectedPostID = "new-post-id"
+
+		let expectation = self.expectation(description: "Directory is uploaded")
+		expectation.expectedFulfillmentCount = 1
+
+		owsClient._upload = { _ in
+			// Should only be called once, otherwise expectation will fail
+			expectation.fulfill()
+
+			return expectedPostID
+		}
+
+		let _ = try! await state.update(directory: directory, to: OWS_CASE)
+
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
+
+		let entry = try! inodeTable.get(with: DIR_INODE)
+
+		XCTAssertEqual(entry.posts.count, 1)
+		XCTAssertEqual(entry.posts.first!.id, expectedPostID)
 	}
 
 	func testUpdateInodeTableUploadsInodeTableData() async {
@@ -331,7 +358,7 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
 
 	func testUpdateInodeTableDeletesOldInodeTablePost() async {
@@ -348,6 +375,160 @@ class StorageStateTester: XCTestCase {
 
 		let _ = try! await state.update(inodeTable: inodeTable, to: OWS_CASE)
 
-		await waitForExpectations(timeout: 5)
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
+	}
+
+	func testUpdateFileOnlyUploadsInodeTableAndFile() async {
+		let fileData = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		let expectation = self.expectation(description: "Inode table and file are uploaded")
+		expectation.expectedFulfillmentCount = 2
+
+		owsClient._upload = { uploadedData in
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+
+			// Current inode table, i.e. the one with updated entry
+			if decodedData == self.inodeTable.raw {
+				expectation.fulfill()
+			} else if decodedData == fileData {
+				expectation.fulfill()
+			} else {
+				XCTFail("Unexpected data uploaded")
+			}
+
+			return "mock-id"
+		}
+
+		let _ = try! await state.updateFile(with: FILE_INODE, using: OWS_CASE, data: fileData)
+
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
+	}
+
+	func testCreateFileOnlyUploadsInodeTableAndDirAndFile() async {
+		let fileData = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		let filename = "new-file.txt"
+
+		let expectedInode = inodeTable.getNextInode()
+		let expectedDirectory = mockedDirectory()
+		try! expectedDirectory.add(filename: filename, with: expectedInode)
+		let expectedDirectoryData = expectedDirectory.raw
+
+		let expectation = self.expectation(description: "Inode table, directory and file are uploaded")
+		expectation.expectedFulfillmentCount = 3
+
+		owsClient._upload = { uploadedData in
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+
+			// Current inode table, i.e. the one with updated entry
+			if decodedData == self.inodeTable.raw {
+				expectation.fulfill()
+			} else if decodedData == fileData {
+				expectation.fulfill()
+			} else if decodedData == expectedDirectoryData {
+				expectation.fulfill()
+			} else {
+				XCTFail("Unexpected data uploaded")
+			}
+
+			return "mock-id"
+		}
+
+		// Fresh directory
+		let directory = mockedDirectory()
+		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: fileData)
+
+		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
+	}
+
+	func testCreateFileAddsNewInodeEntry() async {
+		let fileData = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		let filename = "new-file.txt"
+		let expectedInode = inodeTable.getNextInode()
+
+		let directory = mockedDirectory()
+
+		let filePostID = "new-file-post-id"
+		let otherPostID = "other-post-id"
+
+		owsClient._upload = { data in
+			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+
+			if decodedData == fileData {
+				return filePostID
+			} else {
+				return otherPostID
+			}
+		}
+
+		let entriesBefore = inodeTable.entries.count
+
+		let timeBefore = Date()
+
+		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: fileData)
+
+		let timeAfter = Date()
+
+		let entriesAfter = inodeTable.entries.count
+
+		XCTAssertEqual(entriesAfter, entriesBefore + 1)
+
+		let newEntry = try? inodeTable.get(with: expectedInode)
+		XCTAssertNotNil(newEntry)
+
+		XCTAssertEqual(newEntry!.posts.count, 1)
+		XCTAssertEqual(newEntry!.posts.first!.id, filePostID)
+
+		let metadata = newEntry!.metadata
+
+		// Assert size is correct
+		XCTAssertEqual(metadata.size, UInt64(fileData.count))
+
+		// Assert is not marked as directory
+		XCTAssertFalse(metadata.isDirectory)
+
+		// Assert times are within the expected range
+		let timeUpdated = metadata.timeUpdated
+		let timeCreated = metadata.timeCreated
+
+		let range = UInt64(timeBefore.timeIntervalSince1970) ... UInt64(timeAfter.timeIntervalSince1970)
+
+		XCTAssertTrue(range ~= timeUpdated)
+		XCTAssertTrue(range ~= timeCreated)
+	}
+
+	func testCreateFileWaitsForAllUploadsToFinish() async {
+		// Use counter instead of expectation, as we want to assert the upload count right after
+		// the function has returned, proving the uploads were awaited
+		var uploadCalls = 0
+		let expectedUploadCalls = 3
+
+		let timeBefore = Date()
+		// Seconds
+		let sleepTime: UInt64 = 1
+
+		// Slow upload functions, but all of them will finish eventually
+		// Expectation is only fulfilled when all uploads are done and the function has returned
+		owsClient._upload = { _ in
+			try! await Task.sleep(nanoseconds: sleepTime * 1_000_000_000)
+			uploadCalls += 1
+			return "mock-id"
+		}
+
+		// Fresh directory
+		let directory = mockedDirectory()
+		let _ = try! await state.createFile(in: directory, with: "new-file.txt", using: OWS_CASE, data: Data())
+
+		let timeAfter = Date()
+
+		XCTAssertEqual(uploadCalls, expectedUploadCalls, "Expected \(expectedUploadCalls) upload calls, got \(uploadCalls)")
+
+		// Assert time after is at least sleepTime seconds * 2 after timeBefore (3 calls but two
+		// of them can be at the same time)
+
+		let earliestTime = timeBefore.addingTimeInterval(TimeInterval(sleepTime * 2))
+
+		XCTAssertTrue(timeAfter >= earliestTime)
 	}
 }

@@ -42,7 +42,7 @@ class Directory: BinaryStructure {
 
 	init(entries: [String: Inode] = [:], inode: Inode, version: UInt8 = 1) throws {
 		self.entries = entries
-		self.selfInode = inode
+		selfInode = inode
 		self.version = version
 
 		try entries.forEach { filename, _ in
@@ -55,10 +55,10 @@ class Directory: BinaryStructure {
 
 		var index = raw.startIndex + Directory.magic.count
 
-		self.version = raw[index]
+		version = raw[index]
 		index += 1
 
-		self.selfInode = UInt64(data: raw[index ..< index + 8])
+		selfInode = UInt64(data: raw[index ..< index + 8])
 		index += 8
 
 		var entries: [String: Inode] = [:]
@@ -87,7 +87,8 @@ class Directory: BinaryStructure {
 
 		data.append(selfInode.data)
 
-		for (name, inode) in entries {
+		// Sorted so it is consistent over all raw calls
+		for (name, inode) in entries.sorted(by: { $0.key < $1.key }) {
 			// Take the name as utf8 data and then count the bytes as
 			// the number of characters can be different from the number of bytes
 			let nameData = name.data(using: .utf8)!
