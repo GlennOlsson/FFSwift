@@ -117,7 +117,12 @@ class StorageStateTester: XCTestCase {
 	func testCreateFileReturnsCorrectInode() async {
 		let nextInode = inodeTable.getNextInode()
 
-		let inode = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
+		let inode = try! await state.create(
+			fileData: Data(),
+			in: mockedDirectory(),
+			named: "new-file.txt",
+			using: OWS_CASE
+		)
 
 		XCTAssertEqual(inode, nextInode)
 	}
@@ -142,7 +147,12 @@ class StorageStateTester: XCTestCase {
 			}
 		}
 
-		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
+		let _ = try! await state.create(
+			fileData: Data(),
+			in: mockedDirectory(),
+			named: "new-file.txt",
+			using: OWS_CASE
+		)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -163,7 +173,12 @@ class StorageStateTester: XCTestCase {
 			return "mock-id"
 		}
 
-		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: fileData)
+		let _ = try! await state.create(
+			fileData: fileData,
+			in: mockedDirectory(),
+			named: "new-file.txt",
+			using: OWS_CASE
+		)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -190,7 +205,12 @@ class StorageStateTester: XCTestCase {
 
 		// Fresh copy of the directory without the new file
 		let directory = mockedDirectory()
-		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: Data())
+		let _ = try! await state.create(
+			fileData: Data(),
+			in: directory,
+			named: filename,
+			using: OWS_CASE
+		)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -204,14 +224,19 @@ class StorageStateTester: XCTestCase {
 		owsClient._upload = { data in
 			let decodedData = try! FFSDecoder.decode([data], password: self.password)
 			// Must get the raw version of the inode table because it will be updated with the new entry
-			// while the createFile function is executing
+			// while the create(fileData:) function is executing
 			if decodedData == self.inodeTable.raw {
 				expectation.fulfill()
 			}
 			return "mock-id"
 		}
 
-		let _ = try! await state.createFile(in: mockedDirectory(), with: "new-file.txt", using: OWS_CASE, data: Data())
+		let _ = try! await state.create(
+			fileData: Data(),
+			in: mockedDirectory(),
+			named: "new-file.txt",
+			using: OWS_CASE
+		)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -436,7 +461,12 @@ class StorageStateTester: XCTestCase {
 
 		// Fresh directory
 		let directory = mockedDirectory()
-		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: fileData)
+		let _ = try! await state.create(
+			fileData: fileData,
+			in: directory,
+			named: filename,
+			using: OWS_CASE
+		)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -466,7 +496,12 @@ class StorageStateTester: XCTestCase {
 
 		let timeBefore = Date()
 
-		let _ = try! await state.createFile(in: directory, with: filename, using: OWS_CASE, data: fileData)
+		let _ = try! await state.create(
+			fileData: fileData,
+			in: directory,
+			named: filename,
+			using: OWS_CASE
+		)
 
 		let timeAfter = Date()
 
@@ -518,7 +553,12 @@ class StorageStateTester: XCTestCase {
 
 		// Fresh directory
 		let directory = mockedDirectory()
-		let _ = try! await state.createFile(in: directory, with: "new-file.txt", using: OWS_CASE, data: Data())
+		let _ = try! await state.create(
+			fileData: Data(),
+			in: directory,
+			named: "new-file.txt",
+			using: OWS_CASE
+		)
 
 		let timeAfter = Date()
 
@@ -530,5 +570,68 @@ class StorageStateTester: XCTestCase {
 		let earliestTime = timeBefore.addingTimeInterval(TimeInterval(sleepTime * 2))
 
 		XCTAssertTrue(timeAfter >= earliestTime)
+	}
+
+	func testCreateDirectoryAddsNewInodeEntry() async {
+		let newDirectory = try! Directory(inode: 4)
+		let newDirectoryData = newDirectory.raw
+
+		let filename = "new-dirname"
+		let expectedInode = inodeTable.getNextInode()
+
+		let parentDirectory = mockedDirectory()
+
+		let filePostID = "new-dir-post-id"
+		let otherPostID = "other-post-id"
+
+		owsClient._upload = { data in
+			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+
+			if decodedData == newDirectoryData {
+				return filePostID
+			} else {
+				return otherPostID
+			}
+		}
+
+		let entriesBefore = inodeTable.entries.count
+
+		let timeBefore = Date()
+
+		let _ = try! await state.create(
+			directory: newDirectory,
+			in: parentDirectory,
+			named: filename,
+			using: OWS_CASE
+		)
+
+		let timeAfter = Date()
+
+		let entriesAfter = inodeTable.entries.count
+
+		XCTAssertEqual(entriesAfter, entriesBefore + 1)
+
+		let newEntry = try? inodeTable.get(with: expectedInode)
+		XCTAssertNotNil(newEntry)
+
+		XCTAssertEqual(newEntry!.posts.count, 1)
+		XCTAssertEqual(newEntry!.posts.first!.id, filePostID)
+
+		let metadata = newEntry!.metadata
+
+		// Assert size is correct
+		XCTAssertEqual(metadata.size, UInt64(newDirectoryData.count))
+
+		// Assert is marked as directory
+		XCTAssertTrue(metadata.isDirectory)
+
+		// Assert times are within the expected range
+		let timeUpdated = metadata.timeUpdated
+		let timeCreated = metadata.timeCreated
+
+		let range = UInt64(timeBefore.timeIntervalSince1970) ... UInt64(timeAfter.timeIntervalSince1970)
+
+		XCTAssertTrue(range ~= timeUpdated)
+		XCTAssertTrue(range ~= timeCreated)
 	}
 }

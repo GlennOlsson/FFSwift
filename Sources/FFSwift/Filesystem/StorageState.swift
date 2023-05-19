@@ -132,17 +132,18 @@ class StorageState {
 		delete(posts: currentFilePosts)
 	}
 
-	func createFile(
+	internal func create(
 		in directory: Directory,
 		with name: String,
 		using ows: OnlineWebService,
+		isDirectory: Bool,
 		data: Data
 	) async throws -> Inode {
 		// Add file entry in inode table with no posts, they will be added later
 		// Calling delete on an empty list will do nothing
 		let inodeTableEntry = createInodeEntry(
 			with: UInt64(data.count),
-			isDirectory: false,
+			isDirectory: isDirectory,
 			posts: []
 		)
 		let inode = inodeTable.add(entry: inodeTableEntry)
@@ -160,20 +161,43 @@ class StorageState {
 				// Update directory as it has been modified
 				try await self.update(directory: directory, to: ows)
 			}
-
-			// // Wait for both to finish, but no need to return anything
-			// // The inode table instance is updated in the functions
-			// for try await _ in group {
-			// }
 		}
 
 		// Update inode table. This must be done after the directory and file have been updated
 		// so their new posts are accounted for
 		try await update(inodeTable: inodeTable, to: ows)
 
-		getLogger().notice("Uploaded inode table data")
-
 		return inode
+	}
+
+	func create(
+		fileData: Data,
+		in directory: Directory,
+		named name: String,
+		using ows: OnlineWebService
+	) async throws -> Inode {
+		return try await self.create(
+			in: directory, 
+			with: name, 
+			using: ows, 
+			isDirectory: false, 
+			data: fileData
+		)
+	}
+
+	func create(
+		directory: Directory,
+		in parentDirectory: Directory,
+		named name: String,
+		using ows: OnlineWebService
+	) async throws -> Inode {
+		return try await self.create(
+			in: parentDirectory, 
+			with: name, 
+			using: ows, 
+			isDirectory: true, 
+			data: directory.raw
+		)
 	}
 
 	func updateFile(
