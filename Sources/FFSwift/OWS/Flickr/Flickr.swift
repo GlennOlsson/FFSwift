@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Flickr.swift
 //
 //
 //  Created by Glenn Olsson on 2023-04-13.
@@ -12,12 +12,13 @@ private let uploadURL = URL(string: "https://api.flickr.com/services/upload")!
 private let apiURL = URL(string: "https://api.flickr.com/services/rest")!
 // private let uploadURL = URL(string: "http://127.0.0.1:8080")!
 
-let logger = getLogger(category: "flickr")
 public class FlickrClient: OWSClient {
 	let consumerKey: String
 	let consumerSecret: String
 	let accessToken: String
 	let accessSecret: String
+
+	let logger = getLogger(category: "flickr")
 
 	public init(consumerKey: String, consumerSecret: String, accessToken: String, accessSecret: String) {
 		self.consumerKey = consumerKey
@@ -51,7 +52,7 @@ public class FlickrClient: OWSClient {
 					case let .success(data):
 						completion.resume(returning: data)
 					case let .failure(error):
-						logger.error("Error with getting file data from url: \(error)")
+						self.logger.error("Error with getting file data from flickr: \(error)")
 						completion.resume(returning: nil)
 					}
 				}
@@ -77,7 +78,7 @@ public class FlickrClient: OWSClient {
 				case let .success(data):
 					completion.resume(returning: data)
 				case let .failure(error):
-					logger.error("ERROR WITH UPLOAD: \(error)")
+					self.logger.error("Error with upload: \(error)")
 					completion.resume(returning: nil)
 				}
 			}
@@ -103,9 +104,9 @@ public class FlickrClient: OWSClient {
 			AF.request(apiURL, method: .get, parameters: parameters.allParameters).response { response in
 				switch response.result {
 				case .success:
-					logger.info("Successfully deleted file")
+					self.logger.info("Successfully deleted file")
 				case let .failure(error):
-					logger.error("ERROR WITH UPLOAD: \(error)")
+					self.logger.error("Error with upload: \(error)")
 				}
 
 				completion.resume()
@@ -192,11 +193,11 @@ public class FlickrClient: OWSClient {
 						}
 
 					} else {
-						logger.warning("Could not parse getSizes response")
+						self.logger.warning("Could not parse getSizes response")
 					}
 					continuation.resume(returning: url)
 				case let .failure(error):
-					logger.error("Error with getSizes response: \(error)")
+					self.logger.error("Error with getSizes response: \(error)")
 					continuation.resume(returning: nil)
 				}
 			}
@@ -237,11 +238,11 @@ public class FlickrClient: OWSClient {
 					if let response = try? decoder.decode(FlickrGetRecentResponse.self, from: data!) {
 						ids = response.photos.photo.map { $0.id }
 					} else {
-						logger.warning("Could not parse getRecent response: \(String(data: data!, encoding: .utf8)!)")
+						self.logger.warning("Could not parse getRecent response: \(String(data: data!, encoding: .utf8)!)")
 					}
 					continuation.resume(returning: ids)
 				case let .failure(error):
-					logger.error("Error with getRecent response: \(error)")
+					self.logger.error("Error with getRecent response: \(error)")
 					continuation.resume(returning: [])
 				}
 			}

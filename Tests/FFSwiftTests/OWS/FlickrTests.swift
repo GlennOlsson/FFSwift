@@ -56,10 +56,10 @@ final class FlickrTest: XCTestCase {
 		}
 
 		// Test get file
-		let recievedFileData = try await getFileByIDTest(client: client, id: id)
-		XCTAssertNotNil(recievedFileData)
+		let receivedFileData = try await getFileByIDTest(client: client, id: id)
+		XCTAssertNotNil(receivedFileData)
 
-		XCTAssertEqual(data, recievedFileData)
+		XCTAssertEqual(data, receivedFileData)
 
 		// Test get recent files
 		let recentFiles = try await getRecentFilesTest(client: client, n: 1)
@@ -71,7 +71,17 @@ final class FlickrTest: XCTestCase {
 		await deleteFileTest(client: client, id: id)
 
 		// Test get file after delete
-		let recievedFileDataAfterDelete = try await getFileByIDTest(client: client, id: id)
-		XCTAssertNil(recievedFileDataAfterDelete)
+		let expectation = self.expectation(description: "Get file after delete throws correct error")
+		expectation.expectedFulfillmentCount = 1
+
+		do {
+			let receivedFileDataAfterDelete = try await getFileByIDTest(client: client, id: id)
+			XCTAssertNil(receivedFileDataAfterDelete)
+		} catch {
+			XCTAssertEqual(error as? OWSError, OWSError.noPostWithID(id))
+			expectation.fulfill()
+		}
+
+		await waitForExpectations(timeout: 1)
 	}
 }
