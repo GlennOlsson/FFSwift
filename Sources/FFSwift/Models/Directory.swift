@@ -42,7 +42,7 @@ class Directory: BinaryStructure {
 
 	init(entries: [String: Inode] = [:], inode: Inode, version: UInt8 = 1) throws {
 		self.entries = entries
-		selfInode = inode
+		self.selfInode = inode
 		self.version = version
 
 		try entries.forEach { filename, _ in

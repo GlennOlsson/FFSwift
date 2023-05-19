@@ -1,7 +1,7 @@
 @testable import FFSwift
 import Foundation
 
-let OWS_CASE: OnlineWebService = .flickr
+let OWS_CASE: OnlineWebService = .local
 let DIR_INODE: Inode = 0
 let DIR_POST_ID: String = "0"
 let DIR_SIZE: UInt64 = 50
@@ -27,7 +27,7 @@ class MockedOWSClient: OWSClient {
 	var _getRecent: ((_: Int) async throws -> [String])
 	var _delete: ((_: String) async -> Void)
 
-	/// Only used functions are required, but the ones not passed in will throw an error if calleds
+	/// Only needed functions needs to be passed
 	init(
 		get: @escaping (_: String) async throws -> Data = { _ in Data() },
 		upload: @escaping (_: Data) async throws -> String = { _ in "mocked-id"},

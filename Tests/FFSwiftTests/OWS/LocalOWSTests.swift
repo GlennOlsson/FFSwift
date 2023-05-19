@@ -68,6 +68,7 @@ final class LocalOWSTests: XCTestCase {
 		await waitForExpectations(timeout: 1)
 	}
 
+	// This test might not work for other OWSs unless they are purged before run
 	func testThrowsWhenGettingFromEmpty() async {
 		do {
 			let _ = try await client.getRecent(n: 1)
@@ -77,6 +78,7 @@ final class LocalOWSTests: XCTestCase {
 		}
 	}
 
+	// This test might not work for other OWSs unless they are purged before run
 	func testThrowsWhenGettingNonExistingID() async {
 		let id = "non-existing-id"
 		do {

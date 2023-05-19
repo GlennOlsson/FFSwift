@@ -424,7 +424,7 @@ class StorageStateTester: XCTestCase {
 			return "mock-id"
 		}
 
-		let _ = try! await state.updateFile(with: FILE_INODE, using: OWS_CASE, data: fileData)
+		let _ = try! await state.update(with: FILE_INODE, using: OWS_CASE, data: fileData)
 
 		await waitForExpectations(timeout: EXPECTATION_TIMEOUT)
 	}
@@ -540,13 +540,13 @@ class StorageStateTester: XCTestCase {
 		let expectedUploadCalls = 3
 
 		let timeBefore = Date()
-		// Seconds
-		let sleepTime: UInt64 = 1
+		// Milliseconds
+		let sleepTime: UInt64 = 300
 
 		// Slow upload functions, but all of them will finish eventually
 		// Expectation is only fulfilled when all uploads are done and the function has returned
 		owsClient._upload = { _ in
-			try! await Task.sleep(nanoseconds: sleepTime * 1_000_000_000)
+			try! await Task.sleep(nanoseconds: sleepTime * 1_000_000)
 			uploadCalls += 1
 			return "mock-id"
 		}
@@ -567,17 +567,18 @@ class StorageStateTester: XCTestCase {
 		// Assert time after is at least sleepTime seconds * 2 after timeBefore (3 calls but two
 		// of them can be at the same time)
 
-		let earliestTime = timeBefore.addingTimeInterval(TimeInterval(sleepTime * 2))
+		let earliestTime = timeBefore.addingTimeInterval(TimeInterval((sleepTime * 2) / 1000))
 
-		XCTAssertTrue(timeAfter >= earliestTime)
+		XCTAssertGreaterThanOrEqual(timeAfter, earliestTime)
 	}
 
 	func testCreateDirectoryAddsNewInodeEntry() async {
-		let newDirectory = try! Directory(inode: 4)
+		let expectedInode = inodeTable.getNextInode()
+		
+		let newDirectory = try! Directory(inode: expectedInode)
 		let newDirectoryData = newDirectory.raw
 
 		let filename = "new-dirname"
-		let expectedInode = inodeTable.getNextInode()
 
 		let parentDirectory = mockedDirectory()
 

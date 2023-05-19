@@ -56,23 +56,23 @@ class StorageState {
 	}
 
 	internal func createInodeEntry(
-		with size: UInt64,
-		isDirectory: Bool,
-		posts: [Post]
-	) -> InodeTableEntry {
+		isDirectory: Bool
+	) -> (inode: Inode, entry: InodeTableEntry) {
 		let currentDate = Date()
 		// Converting Double to UInt64 is safe, only loosing < second precision
 		let currentTime = UInt64(currentDate.timeIntervalSince1970)
 
 		let entry = InodeTableEntry(
-			size: size,
+			size: 0,
 			isDirectory: isDirectory,
 			timeCreated: currentTime,
 			timeUpdated: currentTime,
-			posts: posts
+			posts: []
 		)
 
-		return entry
+		let inode = inodeTable.add(entry: entry)
+
+		return (inode: inode, entry: entry)
 	}
 
 	/// Delete a post from its ows
@@ -134,19 +134,14 @@ class StorageState {
 
 	internal func create(
 		in directory: Directory,
-		with name: String,
+		with inode: Inode,
+		named name: String,
 		using ows: OnlineWebService,
+		as entry: InodeTableEntry,
 		isDirectory: Bool,
 		data: Data
 	) async throws -> Inode {
-		// Add file entry in inode table with no posts, they will be added later
-		// Calling delete on an empty list will do nothing
-		let inodeTableEntry = createInodeEntry(
-			with: UInt64(data.count),
-			isDirectory: isDirectory,
-			posts: []
-		)
-		let inode = inodeTable.add(entry: inodeTableEntry)
+		
 
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
@@ -154,7 +149,7 @@ class StorageState {
 		try await withThrowingTaskGroup(of: Void.self) { group async throws in
 			group.addTask {
 				// Upload file data
-				try await self.update(fileWith: inodeTableEntry, to: ows, data: data)
+				try await self.update(fileWith: entry, to: ows, data: data)
 			}
 
 			group.addTask {
@@ -172,15 +167,21 @@ class StorageState {
 
 	func create(
 		fileData: Data,
-		in directory: Directory,
+		in parentDirectory: Directory,
 		named name: String,
 		using ows: OnlineWebService
 	) async throws -> Inode {
+		let (inode, inodeTableEntry) = createInodeEntry(
+			isDirectory: false
+		)
+
 		return try await self.create(
-			in: directory, 
-			with: name, 
+			in: parentDirectory, 
+			with: inode,
+			named: name, 
 			using: ows, 
-			isDirectory: false, 
+			as: inodeTableEntry,
+			isDirectory: true,
 			data: fileData
 		)
 	}
@@ -191,16 +192,25 @@ class StorageState {
 		named name: String,
 		using ows: OnlineWebService
 	) async throws -> Inode {
+		let (inode,inodeTableEntry) = createInodeEntry(
+			isDirectory: true
+		)
+
+		directory.selfInode = inode
+
 		return try await self.create(
 			in: parentDirectory, 
-			with: name, 
+			with: inode,
+			named: name, 
 			using: ows, 
-			isDirectory: true, 
+			as: inodeTableEntry,
+			isDirectory: true,
 			data: directory.raw
 		)
 	}
 
-	func updateFile(
+	// Does not have to update parent dir as the name and id does not change
+	func update(
 		with inode: Inode,
 		using ows: OnlineWebService,
 		data: Data
@@ -213,6 +223,14 @@ class StorageState {
 
 		// Update inode table
 		try await update(inodeTable: inodeTable, to: ows)
+	}
+
+	func update(
+		with inode: Inode,
+		using ows: OnlineWebService,
+		directory: Directory
+	) async throws {
+		try await self.update(with: inode, using: ows, data: directory.raw)
 	}
 
 	internal func getData(from entry: InodeTableEntry) async throws -> [Data] {
@@ -230,7 +248,7 @@ class StorageState {
 		owsMapping[ows] = client
 	}
 
-	func getOWSClient(for ows: OnlineWebService) throws -> OWSClient {
+	internal func getOWSClient(for ows: OnlineWebService) throws -> OWSClient {
 		// check if key is in map
 		guard let client = owsMapping[ows] else {
 			throw OWSError.unsupportedOWS
