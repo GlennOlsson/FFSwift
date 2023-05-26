@@ -34,13 +34,18 @@ class FilesystemState {
 		self.openFiles[fd] = fileStruct
 	}
 
-	func close(_ fd: FileDescriptor) throws {
-		guard var openFile = self.openFiles[fd] else {
+	func close(_ fd: FileDescriptor) async throws {
+		guard let openFile = self.openFiles[fd] else {
 			throw FilesystemError.fileNotOpen
+		}
+		defer {
+			self.openFiles.removeValue(forKey: fd)
 		}
 
 		if let data = openFile.data {
 			// TODO: Upload data, or return uploadable data
+			let ows = storageState.appropriateOWS(for: data.count)
+			try await self.storageState.update(fileWith: openFile.inode, to: ows, data: data)
 		}
 	}
 

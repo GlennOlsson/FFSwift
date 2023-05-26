@@ -5,6 +5,18 @@ class StorageState {
 	internal var inodeTable: InodeTable!
 	internal let password: String // TODO: Find better way to store password
 
+
+	/// Get the post as an Inode table using the password for decrypting
+	internal func getInodeTable(from ows: OWSClient, postID: String) async throws -> InodeTable {
+		let postData = try await ows.get(with: postID)
+
+		let inodeTableData = try FFSDecoder.decode([postData], password: password)
+
+		let inodeTable = try InodeTable.init(raw: inodeTableData)
+
+		return inodeTable
+	}
+
 	/// If the ID is know, it should be passed. Otherwise, the first post stored on the
 	/// ows will be used.
 	func loadInodeTable(from ows: OnlineWebService, with knownPostID: String? = nil) async throws {
@@ -24,7 +36,7 @@ class StorageState {
 		let post = Post(ows: ows, id: postID)
 		self.inodeTablePosts = [post]
 
-		self.inodeTable = try await getInodeTable(from: owsClient, postID: postID, password: password)
+		self.inodeTable = try await getInodeTable(from: owsClient, postID: postID)
 	}
 
 	/// Initializes the state with a password. Before any other function can be called,
@@ -34,6 +46,7 @@ class StorageState {
 		self.password = password
 	}
 
+	/// Get the file data from a file with a given inode
 	func getFile(with inode: Inode) async throws -> Data {
 		guard let entry = inodeTable.entries[inode] else {
 			throw FilesystemError.noFileWithInode(inode)
@@ -50,6 +63,7 @@ class StorageState {
 		return fileData
 	}
 
+	/// Get a directory with the inode from the OWS
 	func getDirectory(with inode: Inode) async throws -> Directory {
 		guard let entry = inodeTable.entries[inode] else {
 			throw FilesystemError.noFileWithInode(inode)
@@ -66,6 +80,7 @@ class StorageState {
 		return try Directory(raw: directoryData)
 	}
 
+	/// Upload data to the FFS. The data is encrypted and encoded before being uploaded.
 	internal func upload(data: Data, to ows: OnlineWebService) async throws -> [Post] {
 		let owsClient = try getOWSClient(for: ows)
 
@@ -80,7 +95,7 @@ class StorageState {
 
 	internal func createInodeEntry(
 		isDirectory: Bool
-	) -> (inode: Inode, entry: InodeTableEntry) {
+	) -> Inode {
 		let currentDate = Date()
 		// Converting Double to UInt64 is safe, only loosing < second precision
 		let currentTime = UInt64(currentDate.timeIntervalSince1970)
@@ -95,7 +110,7 @@ class StorageState {
 
 		let inode = inodeTable.add(entry: entry)
 
-		return (inode: inode, entry: entry)
+		return inode
 	}
 
 	/// Delete a post from its ows
@@ -145,34 +160,34 @@ class StorageState {
 
 	/// Update the file data on the OWS, and remove the old data. Updates the current instance
 	/// of the inode table, but doesn't update it on the OWS
-	internal func update(fileWith inodeEntry: InodeTableEntry, to ows: OnlineWebService, data: Data) async throws {
-		let currentFilePosts = inodeEntry.posts
+	internal func update(fileWith inode: Inode, to ows: OnlineWebService, data: Data) async throws {
+		let inodeTableEntry = try inodeTable.get(with: inode)
+		let currentFilePosts = inodeTableEntry.posts
 
-		inodeEntry.posts = try await upload(data: data, to: ows)
-		inodeEntry.metadata.size = UInt64(data.count)
-		inodeEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
+		inodeTableEntry.posts = try await upload(data: data, to: ows)
+		inodeTableEntry.metadata.size = UInt64(data.count)
+		inodeTableEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
 
 		delete(posts: currentFilePosts)
 	}
 
+	/// Create an entry in the directory, and upload the file data to the OWS
 	internal func create(
 		in directory: Directory,
 		with inode: Inode,
 		named name: String,
 		using ows: OnlineWebService,
-		as entry: InodeTableEntry,
 		isDirectory: Bool,
 		data: Data
 	) async throws -> Inode {
 		
-
 		// Add file to directory
 		try directory.add(filename: name, with: inode)
 
 		try await withThrowingTaskGroup(of: Void.self) { group async throws in
 			group.addTask {
 				// Upload file data
-				try await self.update(fileWith: entry, to: ows, data: data)
+				try await self.update(fileWith: inode, to: ows, data: data)
 			}
 
 			group.addTask {
@@ -188,13 +203,15 @@ class StorageState {
 		return inode
 	}
 
+	/// Create a file in the filesystem with the provided data, in the parent directory
+	/// Stored on the provided OWS
 	func create(
 		fileData: Data,
 		in parentDirectory: Directory,
 		named name: String,
 		using ows: OnlineWebService
 	) async throws -> Inode {
-		let (inode, inodeTableEntry) = createInodeEntry(
+		let inode = createInodeEntry(
 			isDirectory: false
 		)
 
@@ -203,19 +220,20 @@ class StorageState {
 			with: inode,
 			named: name, 
 			using: ows, 
-			as: inodeTableEntry,
 			isDirectory: true,
 			data: fileData
 		)
 	}
 
+	/// Create a directory in the filesystem with the provided data, in the parent directory
+	/// Stored on the provided OWS
 	func create(
 		directory: Directory,
 		in parentDirectory: Directory,
 		named name: String,
 		using ows: OnlineWebService
 	) async throws -> Inode {
-		let (inode,inodeTableEntry) = createInodeEntry(
+		let inode = createInodeEntry(
 			isDirectory: true
 		)
 
@@ -226,28 +244,26 @@ class StorageState {
 			with: inode,
 			named: name, 
 			using: ows, 
-			as: inodeTableEntry,
 			isDirectory: true,
 			data: directory.raw
 		)
 	}
 
+	/// Update a file with an inode with the provided data, on the provided OWS
 	// Does not have to update parent dir as the name and id does not change
 	func update(
 		with inode: Inode,
 		using ows: OnlineWebService,
 		data: Data
 	) async throws {
-		// Get inode entry
-		let inodeEntry = try inodeTable.get(with: inode)
-
 		// Update file data
-		try await update(fileWith: inodeEntry, to: ows, data: data)
+		try await update(fileWith: inode, to: ows, data: data)
 
 		// Update inode table
 		try await update(inodeTable: inodeTable, to: ows)
 	}
 
+	/// Update a directory with an inode with the provided data, on the provided OWS
 	func update(
 		with inode: Inode,
 		using ows: OnlineWebService,
@@ -267,10 +283,12 @@ class StorageState {
 
 	var owsMapping: [OnlineWebService: OWSClient] = [:]
 
+	/// Add an OWS to the filesystem 
 	func addOWS(client: OWSClient, for ows: OnlineWebService) {
 		owsMapping[ows] = client
 	}
 
+	/// Get the OWS client for the provided OWS
 	internal func getOWSClient(for ows: OnlineWebService) throws -> OWSClient {
 		// check if key is in map
 		guard let client = owsMapping[ows] else {
@@ -278,5 +296,11 @@ class StorageState {
 		}
 
 		return client
+	}
+
+	/// Get an OWS that is appropriate for the provided data count
+	/// TODO: Optimize this
+	func appropriateOWS(for dataCount: Int) -> OnlineWebService {
+		return .flickr
 	}
 }

@@ -24,13 +24,3 @@ func loadAsyncList<Input, Output>(items: [Input], using function: @escaping (Inp
 
 	return taskGroupResult
 }
-
-func getInodeTable(from ows: OWSClient, postID: String, password: String) async throws -> InodeTable {
-	let postData = try await ows.get(with: postID)
-
-	let inodeTableData = try FFSDecoder.decode([postData], password: password)
-
-	let inodeTable = try InodeTable.init(raw: inodeTableData)
-
-	return inodeTable
-}
