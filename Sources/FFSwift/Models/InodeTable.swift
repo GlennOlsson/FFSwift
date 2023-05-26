@@ -199,7 +199,7 @@ public class InodeTable: BinaryStructure {
 
 	func get(with inode: Inode) throws -> InodeTableEntry {
 		guard let entry = entries[inode] else {
-			throw FilesystemException.noFileWithInode(inode)
+			throw FilesystemError.noFileWithInode(inode)
 		}
 		return entry
 	}

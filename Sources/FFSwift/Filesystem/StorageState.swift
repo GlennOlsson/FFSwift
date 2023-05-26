@@ -1,23 +1,46 @@
 import Foundation
 
 class StorageState {
-	var inodeTablePosts: [Post]
-	let inodeTable: InodeTable
-	let password: String // TODO: Find better way to store password
+	internal var inodeTablePosts: [Post]!
+	internal var inodeTable: InodeTable!
+	internal let password: String // TODO: Find better way to store password
 
-	init(inodeTable: InodeTable, password: String, tablePosts: [Post]) {
-		self.inodeTable = inodeTable
+	/// If the ID is know, it should be passed. Otherwise, the first post stored on the
+	/// ows will be used.
+	func loadInodeTable(from ows: OnlineWebService, with knownPostID: String? = nil) async throws {
+		let owsClient = try self.getOWSClient(for: ows)
+		let postID: String!
+		if knownPostID == nil {
+			let postIDs = try await owsClient.getRecent(n: 1)
+
+			guard let firstPostID = postIDs.first else {
+				throw StorageStateError.couldNotInitialize
+			}
+			postID = firstPostID
+		} else {
+			postID = knownPostID
+		}
+
+		let post = Post(ows: ows, id: postID)
+		self.inodeTablePosts = [post]
+
+		self.inodeTable = try await getInodeTable(from: owsClient, postID: postID, password: password)
+	}
+
+	/// Initializes the state with a password. Before any other function can be called,
+	/// the inode table needs to be loaded using `loadInodeTable`. The OWS storing the 
+	/// inode table must first be added using `addOWS`.
+	init(password: String) {
 		self.password = password
-		inodeTablePosts = tablePosts
 	}
 
 	func getFile(with inode: Inode) async throws -> Data {
 		guard let entry = inodeTable.entries[inode] else {
-			throw FilesystemException.noFileWithInode(inode)
+			throw FilesystemError.noFileWithInode(inode)
 		}
 
 		if entry.metadata.isDirectory {
-			throw FilesystemException.isDirectory(inode)
+			throw FilesystemError.isDirectory(inode)
 		}
 
 		let imageData = try await getData(from: entry)
@@ -29,11 +52,11 @@ class StorageState {
 
 	func getDirectory(with inode: Inode) async throws -> Directory {
 		guard let entry = inodeTable.entries[inode] else {
-			throw FilesystemException.noFileWithInode(inode)
+			throw FilesystemError.noFileWithInode(inode)
 		}
 
 		if !entry.metadata.isDirectory {
-			throw FilesystemException.isFile
+			throw FilesystemError.isFile
 		}
 
 		let imageData = try await getData(from: entry)
@@ -95,7 +118,7 @@ class StorageState {
 
 	/// Update the inode table on the OWS, and remove the old data
 	internal func update(inodeTable: InodeTable, to ows: OnlineWebService) async throws {
-		let currentInodeTablePosts = inodeTablePosts
+		let currentInodeTablePosts = self.inodeTablePosts!
 
 		// Update inode table on ows
 		inodeTablePosts = try await upload(data: inodeTable.raw, to: ows)

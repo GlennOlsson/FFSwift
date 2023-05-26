@@ -25,7 +25,7 @@ class FilesystemUtilsTests: XCTestCase {
 	}
 
 	func testThrowingFunctionThrows() async {
-		let exception = FilesystemException.noFileWithInode(0)
+		let exception = FilesystemError.noFileWithInode(0)
 		let f: (Int) throws -> Data = { _ throws in
 			throw exception
 		}
@@ -35,7 +35,7 @@ class FilesystemUtilsTests: XCTestCase {
 		do {
 			_ = try await loadAsyncList(items: [0, 1], using: f)
 		} catch {
-			XCTAssertEqual(error as! FilesystemException, exception)
+			XCTAssertEqual(error as! FilesystemError, exception)
 			expectation.fulfill()
 		}
 	}

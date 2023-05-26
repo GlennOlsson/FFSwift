@@ -14,13 +14,15 @@ class StorageStateTester: XCTestCase {
 	override func setUp() {
 		inodeTable = mockedInodeTable()
 		state = StorageState(
-			inodeTable: inodeTable,
-			password: password,
-			tablePosts: [
-				INODE_TABLE_POST,
-			]
+			password: password
 		)
+		state.inodeTable = inodeTable
+		state.inodeTablePosts = [
+			INODE_TABLE_POST,
+		]
+
 		owsClient = MockedOWSClient()
+		
 		state.addOWS(client: owsClient, for: OWS_CASE)
 	}
 
@@ -42,7 +44,7 @@ class StorageStateTester: XCTestCase {
 			_ = try await state.getFile(with: badInode)
 			XCTFail("Did not throw for bad inode")
 		} catch {
-			XCTAssertEqual(error as! FilesystemException, FilesystemException.noFileWithInode(badInode))
+			XCTAssertEqual(error as! FilesystemError, FilesystemError.noFileWithInode(badInode))
 		}
 	}
 
@@ -52,7 +54,7 @@ class StorageStateTester: XCTestCase {
 			_ = try await state.getFile(with: inode)
 			XCTFail("Did not throw for dir inode")
 		} catch {
-			XCTAssertEqual(error as! FilesystemException, FilesystemException.isDirectory(inode))
+			XCTAssertEqual(error as! FilesystemError, FilesystemError.isDirectory(inode))
 		}
 	}
 
@@ -73,7 +75,7 @@ class StorageStateTester: XCTestCase {
 			_ = try await state.getDirectory(with: inode)
 			XCTFail("Did not throw for file inode")
 		} catch {
-			XCTAssertEqual(error as! FilesystemException, FilesystemException.isFile)
+			XCTAssertEqual(error as! FilesystemError, FilesystemError.isFile)
 		}
 	}
 
@@ -83,7 +85,7 @@ class StorageStateTester: XCTestCase {
 			_ = try await state.getDirectory(with: badInode)
 			XCTFail("Did not throw for bad inode")
 		} catch {
-			XCTAssertEqual(error as! FilesystemException, FilesystemException.noFileWithInode(badInode))
+			XCTAssertEqual(error as! FilesystemError, FilesystemError.noFileWithInode(badInode))
 		}
 	}
 
