@@ -18,6 +18,8 @@ let ACCESSED_DATE: Date = ACCESSED_DATE.addingTimeInterval(400)
 let INODE_TABLE_POST_ID = "-1"
 let INODE_TABLE_POST: Post = .init(ows: OWS_CASE, id: INODE_TABLE_POST_ID)
 
+let PASSWORD = "password"
+
 /// Client where the functions are defined in the init
 class MockedOWSClient: OWSClient {
     var sizeLimit: Int = .max
@@ -92,4 +94,18 @@ func mockedDirectory() -> Directory {
 	try! Directory(entries: [
 		FILE_NAME: FILE_INODE,
 	], inode: DIR_INODE)
+}
+
+func mockedStorageState(inodeTable: InodeTable, owsClient: OWSClient) -> StorageState {
+	let state = StorageState(
+		password: PASSWORD
+	)
+	state.inodeTable = inodeTable
+	state.inodeTablePosts = [
+		INODE_TABLE_POST,
+	]
+
+	state.addOWS(client: owsClient, for: OWS_CASE)
+
+	return state
 }

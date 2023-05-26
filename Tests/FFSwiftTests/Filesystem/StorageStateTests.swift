@@ -3,8 +3,6 @@ import Foundation
 import XCTest
 
 class StorageStateTester: XCTestCase {
-	let password = "password"
-
 	var state: StorageState!
 	var inodeTable: InodeTable!
 	var owsClient: MockedOWSClient!
@@ -12,25 +10,16 @@ class StorageStateTester: XCTestCase {
 	let EXPECTATION_TIMEOUT: TimeInterval = 10
 
 	override func setUp() {
-		inodeTable = mockedInodeTable()
-		state = StorageState(
-			password: password
-		)
-		state.inodeTable = inodeTable
-		state.inodeTablePosts = [
-			INODE_TABLE_POST,
-		]
-
-		owsClient = MockedOWSClient()
-		
-		state.addOWS(client: owsClient, for: OWS_CASE)
+		self.inodeTable = mockedInodeTable()
+		self.owsClient = MockedOWSClient()
+		self.state = mockedStorageState(inodeTable: inodeTable, owsClient: owsClient)
 	}
 
 	func testGetFileReturnsCorrectData() async {
 		let data = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
 		owsClient._get = { _ in
-			try! FFSEncoder.encode(data, password: self.password, limit: .max).first!
+			try! FFSEncoder.encode(data, password: PASSWORD, limit: .max).first!
 		}
 
 		let fileData = try! await state.getFile(with: FILE_INODE)
@@ -61,7 +50,7 @@ class StorageStateTester: XCTestCase {
 	func testGetDirectoryReturnsCorrectDirectory() async {
 		let directory = mockedDirectory()
 		owsClient._get = { _ in
-			try! FFSEncoder.encode(directory.raw, password: self.password, limit: .max).first!
+			try! FFSEncoder.encode(directory.raw, password: PASSWORD, limit: .max).first!
 		}
 
 		let returnedDirectory = try! await state.getDirectory(with: DIR_INODE)
@@ -167,7 +156,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 1
 
 		owsClient._upload = { data in
-			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+			let decodedData = try! FFSDecoder.decode([data], password: PASSWORD)
 			// Multiple data will be uploaded (dir, inode table), so cannot only assert equality
 			if decodedData == fileData {
 				expectation.fulfill()
@@ -197,7 +186,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 1
 
 		owsClient._upload = { data in
-			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+			let decodedData = try! FFSDecoder.decode([data], password: PASSWORD)
 			// Multiple data will be uploaded (file, inode table), so cannot only assert equality
 			if decodedData == dirData {
 				expectation.fulfill()
@@ -224,7 +213,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 1
 
 		owsClient._upload = { data in
-			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+			let decodedData = try! FFSDecoder.decode([data], password: PASSWORD)
 			// Must get the raw version of the inode table because it will be updated with the new entry
 			// while the create(fileData:) function is executing
 			if decodedData == self.inodeTable.raw {
@@ -287,7 +276,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 1
 
 		owsClient._upload = { uploadedData in
-			let decodedData: Data = try! FFSDecoder.decode([uploadedData], password: self.password)
+			let decodedData: Data = try! FFSDecoder.decode([uploadedData], password: PASSWORD)
 
 			XCTAssertEqual(decodedData, data)
 
@@ -311,7 +300,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 1
 
 		owsClient._upload = { uploadedData in
-			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: PASSWORD)
 
 			XCTAssertEqual(decodedData, dir.raw)
 
@@ -377,7 +366,7 @@ class StorageStateTester: XCTestCase {
 		let expectedInodeTableData = inodeTable.raw
 
 		owsClient._upload = { uploadedData in
-			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: PASSWORD)
 			XCTAssertEqual(decodedData, expectedInodeTableData)
 			expectation.fulfill()
 			return "mock-id"
@@ -412,7 +401,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 2
 
 		owsClient._upload = { uploadedData in
-			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: PASSWORD)
 
 			// Current inode table, i.e. the one with updated entry
 			if decodedData == self.inodeTable.raw {
@@ -445,7 +434,7 @@ class StorageStateTester: XCTestCase {
 		expectation.expectedFulfillmentCount = 3
 
 		owsClient._upload = { uploadedData in
-			let decodedData = try! FFSDecoder.decode([uploadedData], password: self.password)
+			let decodedData = try! FFSDecoder.decode([uploadedData], password: PASSWORD)
 
 			// Current inode table, i.e. the one with updated entry
 			if decodedData == self.inodeTable.raw {
@@ -485,7 +474,7 @@ class StorageStateTester: XCTestCase {
 		let otherPostID = "other-post-id"
 
 		owsClient._upload = { data in
-			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+			let decodedData = try! FFSDecoder.decode([data], password: PASSWORD)
 
 			if decodedData == fileData {
 				return filePostID
@@ -588,7 +577,7 @@ class StorageStateTester: XCTestCase {
 		let otherPostID = "other-post-id"
 
 		owsClient._upload = { data in
-			let decodedData = try! FFSDecoder.decode([data], password: self.password)
+			let decodedData = try! FFSDecoder.decode([data], password: PASSWORD)
 
 			if decodedData == newDirectoryData {
 				return filePostID

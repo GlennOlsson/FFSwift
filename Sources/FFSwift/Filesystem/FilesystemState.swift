@@ -26,12 +26,14 @@ class FilesystemState {
 		return maxFD?.advanced(by: 1) ?? 0
 	}
 
-	func open(inode: Inode, in parent: Directory) {
+	func open(inode: Inode, in parent: Directory) -> FileDescriptor {
 		let fd = getNextFD()
 
 		let fileStruct = OpenFile(inode: inode, parentInode: parent.selfInode)
 
 		self.openFiles[fd] = fileStruct
+
+		return fd
 	}
 
 	func close(_ fd: FileDescriptor) async throws {
@@ -43,7 +45,6 @@ class FilesystemState {
 		}
 
 		if let data = openFile.data {
-			// TODO: Upload data, or return uploadable data
 			let ows = storageState.appropriateOWS(for: data.count)
 			try await self.storageState.update(fileWith: openFile.inode, to: ows, data: data)
 		}

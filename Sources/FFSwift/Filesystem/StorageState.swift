@@ -5,7 +5,6 @@ class StorageState {
 	internal var inodeTable: InodeTable!
 	internal let password: String // TODO: Find better way to store password
 
-
 	/// Get the post as an Inode table using the password for decrypting
 	internal func getInodeTable(from ows: OWSClient, postID: String) async throws -> InodeTable {
 		let postData = try await ows.get(with: postID)
@@ -301,6 +300,6 @@ class StorageState {
 	/// Get an OWS that is appropriate for the provided data count
 	/// TODO: Optimize this
 	func appropriateOWS(for dataCount: Int) -> OnlineWebService {
-		return .flickr
+		return .local
 	}
 }
