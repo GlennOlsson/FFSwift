@@ -24,6 +24,8 @@ let PASSWORD = "password"
 class MockedOWSClient: OWSClient {
     var sizeLimit: Int = .max
 
+	let ows: OnlineWebService = OWS_CASE
+
 	var _get: ((_: String) async throws -> Data)
 	var _upload: ((_: Data) async throws -> String)
 	var _getRecent: ((_: Int) async throws -> [String])
@@ -105,7 +107,7 @@ func mockedStorageState(inodeTable: InodeTable, owsClient: OWSClient) -> Storage
 		INODE_TABLE_POST,
 	]
 
-	state.addOWS(client: owsClient, for: OWS_CASE)
+	state.addOWS(client: owsClient)
 
 	return state
 }

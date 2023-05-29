@@ -3,6 +3,7 @@ import Foundation
 protocol OWSClient {
 
 	var sizeLimit: Int { get }
+	var ows: OnlineWebService { get }
 
 	/**
 	 * Get the data of a post from the server

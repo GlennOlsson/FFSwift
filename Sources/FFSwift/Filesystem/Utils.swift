@@ -24,3 +24,11 @@ func loadAsyncList<Input, Output>(items: [Input], using function: @escaping (Inp
 
 	return taskGroupResult
 }
+
+/// Get the OWS client for the provided OWS
+func getOWSClient(of ows: OnlineWebService, with mapping: [OnlineWebService: OWSClient]) throws -> OWSClient {
+	guard let client = mapping[ows] else {
+		throw OWSError.unsupportedOWS
+	}
+	return client
+}

@@ -90,19 +90,24 @@ class StorageStateTester: XCTestCase {
 		let data = Data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
 		owsClient._get = { id in
+			var dataToEncode: Data!
 			if id == FILE_POST_ID {
-				return data
+				dataToEncode = data
 			} else {
-				return Data()
+				dataToEncode = Data()
 			}
+
+			let encodedData = try! FFSEncoder.encode(dataToEncode, password: PASSWORD, limit: .max)
+			// Will only be one image
+			return encodedData.first!
 		}
 
 		let inodeEntry = try! inodeTable.get(with: FILE_INODE)
 
 		let receivedData = try! await state.getData(from: inodeEntry)
 
-		XCTAssertEqual(receivedData.count, 1)
-		XCTAssertEqual(receivedData.first!, data)
+		XCTAssertEqual(receivedData.count, data.count)
+		XCTAssertEqual(receivedData, data)
 	}
 
 	func testCreateFileReturnsCorrectInode() async {

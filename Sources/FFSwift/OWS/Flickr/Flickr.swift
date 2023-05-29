@@ -18,6 +18,8 @@ public class FlickrClient: OWSClient {
 	let accessToken: String
 	let accessSecret: String
 
+	var ows: OnlineWebService = .flickr
+
 	let logger = getLogger(category: "flickr")
 
 	public init(consumerKey: String, consumerSecret: String, accessToken: String, accessSecret: String) {

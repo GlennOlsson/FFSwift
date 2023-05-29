@@ -24,7 +24,7 @@ class FilesystemStateTester: XCTestCase {
 
 	func testCloseUnopenedFileThrows() async throws {
 		let directory = mockedDirectory()
-		fsState.open(inode: FILE_INODE, in: directory)
+		let _ = fsState.open(inode: FILE_INODE, in: directory)
 		do {
 			try await self.fsState.close(.max)
 			XCTFail("Should have thrown")

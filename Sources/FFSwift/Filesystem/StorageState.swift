@@ -5,6 +5,8 @@ class StorageState {
 	internal var inodeTable: InodeTable!
 	internal let password: String // TODO: Find better way to store password
 
+	var owsMapping: [OnlineWebService: OWSClient] = [:]
+
 	/// Get the post as an Inode table using the password for decrypting
 	internal func getInodeTable(from ows: OWSClient, postID: String) async throws -> InodeTable {
 		let postData = try await ows.get(with: postID)
@@ -19,7 +21,7 @@ class StorageState {
 	/// If the ID is know, it should be passed. Otherwise, the first post stored on the
 	/// ows will be used.
 	func loadInodeTable(from ows: OnlineWebService, with knownPostID: String? = nil) async throws {
-		let owsClient = try self.getOWSClient(for: ows)
+		let owsClient = try getOWSClient(for: ows)
 		let postID: String!
 		if knownPostID == nil {
 			let postIDs = try await owsClient.getRecent(n: 1)
@@ -55,9 +57,7 @@ class StorageState {
 			throw FilesystemError.isDirectory(inode)
 		}
 
-		let imageData = try await getData(from: entry)
-
-		let fileData = try FFSDecoder.decode(imageData, password: password)
+		let fileData = try await getData(from: entry)
 
 		return fileData
 	}
@@ -72,24 +72,9 @@ class StorageState {
 			throw FilesystemError.isFile
 		}
 
-		let imageData = try await getData(from: entry)
-
-		let directoryData = try FFSDecoder.decode(imageData, password: password)
+		let directoryData = try await getData(from: entry)
 
 		return try Directory(raw: directoryData)
-	}
-
-	/// Upload data to the FFS. The data is encrypted and encoded before being uploaded.
-	internal func upload(data: Data, to ows: OnlineWebService) async throws -> [Post] {
-		let owsClient = try getOWSClient(for: ows)
-
-		let encodedData = try FFSEncoder.encode(data, password: password, limit: owsClient.sizeLimit)
-
-		let postIDs = try await loadAsyncList(items: encodedData, using: owsClient.upload(data:))
-
-		let posts = postIDs.map { Post(ows: ows, id: $0) }
-
-		return posts
 	}
 
 	internal func createInodeEntry(
@@ -114,9 +99,7 @@ class StorageState {
 
 	/// Delete a post from its ows
 	internal func delete(post: Post) async throws {
-		let owsClient = try getOWSClient(for: post.ows)
-
-		await owsClient.delete(id: post.id)
+		try await Storage.remove(post: post, with: owsMapping)
 	}
 
 	/// Deletes the posts from the OWS in a background task
@@ -168,6 +151,12 @@ class StorageState {
 		inodeTableEntry.metadata.timeUpdated = UInt64(Date().timeIntervalSince1970)
 
 		delete(posts: currentFilePosts)
+	}
+
+	func upload(data: Data, to: OnlineWebService) async throws -> [Post] {
+		let owsClient = try getOWSClient(for: to)
+
+		return try await Storage.upload(data: data, to: owsClient, with: password)
 	}
 
 	/// Create an entry in the directory, and upload the file data to the OWS
@@ -271,30 +260,20 @@ class StorageState {
 		try await self.update(with: inode, using: ows, data: directory.raw)
 	}
 
-	internal func getData(from entry: InodeTableEntry) async throws -> [Data] {
-		let data: [Data] = try await loadAsyncList(items: entry.posts) { post async throws in
-			let client = try self.getOWSClient(for: post.ows)
-			return try await client.get(with: post.id)
-		}
-
-		return data
+	// Download the posts of an inode table entry from the OWS, 
+	// decode the images and decrypt the data. Returns the pure FFS data stored 
+	// on the OWS for the entry
+	internal func getData(from entry: InodeTableEntry) async throws -> Data {
+		return try await Storage.download(posts: entry.posts, with: password, mapping: owsMapping)
 	}
-
-	var owsMapping: [OnlineWebService: OWSClient] = [:]
 
 	/// Add an OWS to the filesystem 
-	func addOWS(client: OWSClient, for ows: OnlineWebService) {
-		owsMapping[ows] = client
+	func addOWS(client: OWSClient) {
+		owsMapping[client.ows] = client
 	}
 
-	/// Get the OWS client for the provided OWS
-	internal func getOWSClient(for ows: OnlineWebService) throws -> OWSClient {
-		// check if key is in map
-		guard let client = owsMapping[ows] else {
-			throw OWSError.unsupportedOWS
-		}
-
-		return client
+	func getOWSClient(for ows: OnlineWebService) throws -> OWSClient {
+		return try FFSwift.getOWSClient(of: ows, with: owsMapping)
 	}
 
 	/// Get an OWS that is appropriate for the provided data count

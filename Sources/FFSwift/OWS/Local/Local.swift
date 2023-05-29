@@ -8,6 +8,8 @@ class LocalOWSClient: OWSClient {
 
 	let FILE_EXTENSION = "png"
 
+	var ows: OnlineWebService = .local
+
 	let logger = getLogger(category: "local-ows")
 	// Post id is the file name, excluding .png extension
 
