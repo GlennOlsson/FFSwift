@@ -98,8 +98,8 @@ func mockedDirectory() -> Directory {
 	], inode: DIR_INODE)
 }
 
-func mockedStorageState(inodeTable: InodeTable, owsClient: OWSClient) -> StorageState {
-	let state = StorageState(
+func mockedFilesystemState(inodeTable: InodeTable, owsClient: OWSClient) -> FilesystemState {
+	let state = FilesystemState(
 		password: PASSWORD
 	)
 	state.inodeTable = inodeTable

@@ -2,15 +2,15 @@
 import XCTest
 import Foundation
 
-class FilesystemStateTester: XCTestCase {
-	var fsState: FilesystemState!
+class FileHandlerTester: XCTestCase {
+	var fsState: FileHandler!
 
 	override func setUp() {
 		let inodeTable = mockedInodeTable()
 		let owsClient = MockedOWSClient()
-		let storageState = mockedStorageState(inodeTable: inodeTable, owsClient: owsClient)
+		let state = mockedFilesystemState(inodeTable: inodeTable, owsClient: owsClient)
 
-		self.fsState = FilesystemState(storage: storageState)
+		self.fsState = FileHandler(state: state)
 	}
 
 	func testCloseWithNoOpenFilesThrows() async {

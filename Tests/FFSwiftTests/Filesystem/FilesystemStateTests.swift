@@ -2,8 +2,8 @@
 import Foundation
 import XCTest
 
-class StorageStateTester: XCTestCase {
-	var state: StorageState!
+class FilesystemStateTester: XCTestCase {
+	var state: FilesystemState!
 	var inodeTable: InodeTable!
 	var owsClient: MockedOWSClient!
 
@@ -12,7 +12,7 @@ class StorageStateTester: XCTestCase {
 	override func setUp() {
 		self.inodeTable = mockedInodeTable()
 		self.owsClient = MockedOWSClient()
-		self.state = mockedStorageState(inodeTable: inodeTable, owsClient: owsClient)
+		self.state = mockedFilesystemState(inodeTable: inodeTable, owsClient: owsClient)
 	}
 
 	func testGetFileReturnsCorrectData() async {
