@@ -7,6 +7,17 @@ class FilesystemState {
 
 	var owsMapping: [OnlineWebService: OWSClient] = [:]
 
+	let storage: Storage
+
+	/// Initializes the state with a password. Before any other function can be called,
+	/// the inode table needs to be loaded using `loadInodeTable`. The OWS storing the 
+	/// inode table must first be added using `addOWS`.
+	init(password: String) {
+		self.password = password
+		self.storage = Storage()
+	}
+
+
 	/// Get the post as an Inode table using the password for decrypting
 	internal func getInodeTable(from ows: OWSClient, postID: String) async throws -> InodeTable {
 		let postData = try await ows.get(with: postID)
@@ -38,13 +49,6 @@ class FilesystemState {
 		self.inodeTablePosts = [post]
 
 		self.inodeTable = try await getInodeTable(from: owsClient, postID: postID)
-	}
-
-	/// Initializes the state with a password. Before any other function can be called,
-	/// the inode table needs to be loaded using `loadInodeTable`. The OWS storing the 
-	/// inode table must first be added using `addOWS`.
-	init(password: String) {
-		self.password = password
 	}
 
 	/// Get the file data from a file with a given inode
@@ -97,19 +101,12 @@ class FilesystemState {
 		return inode
 	}
 
-	/// Delete a post from its ows
-	internal func delete(post: Post) async throws {
-		try await Storage.remove(post: post, with: owsMapping)
-	}
-
 	/// Deletes the posts from the OWS in a background task
 	internal func delete(posts: [Post]) {
 		// Remove old posts of directory and inode table on another thread
 		// We don't care about the result of this task
 		Task {
-			for post in posts {
-				try await delete(post: post)
-			}
+			try await storage.remove(posts: posts, with: owsMapping)
 		}
 	}
 
@@ -156,7 +153,7 @@ class FilesystemState {
 	func upload(data: Data, to: OnlineWebService) async throws -> [Post] {
 		let owsClient = try getOWSClient(for: to)
 
-		return try await Storage.upload(data: data, to: owsClient, with: password)
+		return try await storage.upload(data: data, to: owsClient, with: password)
 	}
 
 	/// Create an entry in the directory, and upload the file data to the OWS
@@ -264,7 +261,7 @@ class FilesystemState {
 	// decode the images and decrypt the data. Returns the pure FFS data stored 
 	// on the OWS for the entry
 	internal func getData(from entry: InodeTableEntry) async throws -> Data {
-		return try await Storage.download(posts: entry.posts, with: password, mapping: owsMapping)
+		return try await storage.download(posts: entry.posts, with: password, mapping: owsMapping)
 	}
 
 	/// Add an OWS to the filesystem 

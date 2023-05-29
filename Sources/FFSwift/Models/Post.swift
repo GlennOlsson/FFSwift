@@ -2,7 +2,7 @@ import Foundation
 
 // TODO: In the future, could include data range of post. I.e. starting and ending byte index of full file/directory data
 /// Represents a post on an OWS
-struct Post: BinaryStructure {
+struct Post: BinaryStructure, Hashable {
 	// MARK: BinaryStructure attributes
 
 	static var magic: String = "P"
@@ -57,5 +57,10 @@ struct Post: BinaryStructure {
 
 	public static func == (a: Post, b: Post) -> Bool {
 		a.id == b.id && a.ows == b.ows
+	}
+
+	func hash(into hasher: inout Hasher) {
+		hasher.combine(id)
+		hasher.combine(ows)
 	}
 }
