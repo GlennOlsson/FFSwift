@@ -8,7 +8,8 @@ class Storage {
 		cache = StorageCache()
 	}
 
-	/// Upload data to the FFS. The data is encrypted and encoded before being uploaded.
+	/// Upload data to the FFS. The data is encrypted and encoded before being uploaded. The uploaded
+	/// data is cached.
 	func upload(data: Data, to owsClient: OWSClient, with password: String) async throws -> [Post] {
 		let encodedData = try FFSEncoder.encode(data, password: password, limit: owsClient.sizeLimit)
 
@@ -21,6 +22,8 @@ class Storage {
 		return posts
 	}
 
+	/// Download data from the FFS. The data is decoded and decrypted after being downloaded. The
+	/// cache is checked before downloading the data.
 	func download(posts: [Post], with password: String, mapping: [OnlineWebService: OWSClient]) async throws -> Data {
 		let cachedData = self.cache.get(posts)
 		if cachedData != nil {
@@ -37,6 +40,7 @@ class Storage {
 		return decodedData
 	}
 
+	/// Remove posts from the FFS. The data is removed from the cache and from the OWS.
 	func remove(posts: [Post], with mapping: [OnlineWebService: OWSClient]) async throws {
 		self.cache.remove(posts)
 
