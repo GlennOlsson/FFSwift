@@ -3,19 +3,19 @@ import XCTest
 import Foundation
 
 class FileHandlerTester: XCTestCase {
-	var fsState: FileHandler!
+	var fileHandler: FileHandler!
 
 	override func setUp() {
 		let inodeTable = mockedInodeTable()
 		let owsClient = MockedOWSClient()
 		let state = mockedFilesystemState(inodeTable: inodeTable, owsClient: owsClient)
 
-		self.fsState = FileHandler(state: state)
+		self.fileHandler = FileHandler(state: state)
 	}
 
 	func testCloseWithNoOpenFilesThrows() async {
 		do {
-			try await self.fsState.close(0)
+			try await self.fileHandler.close(0)
 			XCTFail("Should have thrown")
 		} catch {
 			XCTAssertEqual(error as! FilesystemError, FilesystemError.fileNotOpen)
@@ -24,9 +24,9 @@ class FileHandlerTester: XCTestCase {
 
 	func testCloseUnopenedFileThrows() async throws {
 		let directory = mockedDirectory()
-		let _ = fsState.open(inode: FILE_INODE, in: directory)
+		let _ = fileHandler.open(inode: FILE_INODE, in: directory)
 		do {
-			try await self.fsState.close(.max)
+			try await self.fileHandler.close(.max)
 			XCTFail("Should have thrown")
 		} catch {
 			XCTAssertEqual(error as! FilesystemError, FilesystemError.fileNotOpen)
@@ -34,29 +34,41 @@ class FileHandlerTester: XCTestCase {
 	}
 
 	func testUpdateDataOnUnopenedFileThrows() throws {
-		XCTAssertThrowsError(try self.fsState.updateData(for: .max, data: Data())) { error in
+		XCTAssertThrowsError(try self.fileHandler.updateData(for: .max, data: Data())) { error in
 			XCTAssertEqual(error as! FilesystemError, FilesystemError.fileNotOpen)
 		}
 	}
 
 	func testCanCloseOpenFile() async {
 		let directory = mockedDirectory()
-		let fd = fsState.open(inode: FILE_INODE, in: directory)
-		try! await self.fsState.close(fd)
+		let fd = fileHandler.open(inode: FILE_INODE, in: directory)
+		try! await self.fileHandler.close(fd)
 	}
 
 	func testGetNextFDReturnsSameWithoutOpen() {
-		let fd = fsState.getNextFD()
+		let fd = fileHandler.getNextFD()
 		XCTAssertEqual(fd, 0)
-		let fd2 = fsState.getNextFD()
+		let fd2 = fileHandler.getNextFD()
 		XCTAssertEqual(fd2, 0)
 	}
 
 	func testGetNextFDReturnsHigherWhenOpened() {
 		let directory = mockedDirectory()
-		let fd = fsState.open(inode: FILE_INODE, in: directory)
+		let fd = fileHandler.open(inode: FILE_INODE, in: directory)
 		XCTAssertEqual(fd, 0)
-		let fd2 = fsState.getNextFD()
+		let fd2 = fileHandler.getNextFD()
 		XCTAssertEqual(fd2, 1)
+	}
+
+	func testUpdateDataUpdatesData() {
+		let directory = mockedDirectory()
+
+		let fd = fileHandler.open(inode: FILE_INODE, in: directory)
+
+		let data = Data([0x01, 0x02, 0x03])
+
+		try! fileHandler.updateData(for: fd, data: data)
+
+		XCTAssertEqual(fileHandler.openFiles[fd]?.data, data)
 	}
 }

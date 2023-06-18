@@ -26,6 +26,7 @@ class FileHandler {
 		return maxFD?.advanced(by: 1) ?? 0
 	}
 
+	/// Open a file and return a file descriptor which can be used for subsequent operations with the file
 	func open(inode: Inode, in parent: Directory) -> FileDescriptor {
 		let fd = getNextFD()
 
@@ -36,6 +37,7 @@ class FileHandler {
 		return fd
 	}
 
+	/// Close an open file and update the file on the filesystem
 	func close(_ fd: FileDescriptor) async throws {
 		guard let openFile = self.openFiles[fd] else {
 			throw FilesystemError.fileNotOpen
@@ -50,11 +52,13 @@ class FileHandler {
 		}
 	}
 
+	/// Update the data for an open file
 	func updateData(for fd: FileDescriptor, data: Data) throws {
 		guard var openFile = self.openFiles[fd] else {
 			throw FilesystemError.fileNotOpen
 		}
 
 		openFile.data = data
+		openFiles[fd] = openFile
 	}
 }
