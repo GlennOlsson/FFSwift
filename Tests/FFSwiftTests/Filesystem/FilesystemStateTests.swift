@@ -532,18 +532,22 @@ class FilesystemStateTester: XCTestCase {
 	func testCreateFileWaitsForAllUploadsToFinish() async {
 		// Use counter instead of expectation, as we want to assert the upload count right after
 		// the function has returned, proving the uploads were awaited
-		var uploadCalls = 0
 		let expectedUploadCalls = 3
 
 		let timeBefore = Date()
 		// Milliseconds
 		let sleepTime: UInt64 = 300
 
+		let expectation = self.expectation(description: "\(expectedUploadCalls) uploads are done")
+		expectation.expectedFulfillmentCount = expectedUploadCalls
+
 		// Slow upload functions, but all of them will finish eventually
 		// Expectation is only fulfilled when all uploads are done and the function has returned
 		owsClient._upload = { _ in
 			try! await Task.sleep(nanoseconds: sleepTime * 1_000_000)
-			uploadCalls += 1
+			
+			expectation.fulfill()
+			
 			return "mock-id"
 		}
 
@@ -558,7 +562,7 @@ class FilesystemStateTester: XCTestCase {
 
 		let timeAfter = Date()
 
-		XCTAssertEqual(uploadCalls, expectedUploadCalls, "Expected \(expectedUploadCalls) upload calls, got \(uploadCalls)")
+		await waitForExpectations(timeout: 0)
 
 		// Assert time after is at least sleepTime seconds * 2 after timeBefore (3 calls but two
 		// of them can be at the same time)
